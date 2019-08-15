@@ -6,7 +6,7 @@ readme = Path('README.md').read_text()
 
 
 setup(name="limiter",
-      version="0.0.3",
+      version="0.0.4",
       description="Rate-limiting asynchronous and synchronous decorators and context managers that implement the token-bucket algorithm.",
       long_description=readme,
       long_description_content_type="text/markdown",

@@ -21,9 +21,11 @@ pip3 install limiter
 # Usage
 
 ```python3
-from requests import get, Response
-from limiter import get_limiter, limit, limit_rate, async_limit_rate
 from asyncio import sleep
+
+from requests import get, Response
+from limiter import get_limiter, limit, limit_rate
+
 
 REFRESH_RATE = 2
 BURST = 3
@@ -51,7 +53,7 @@ def do_stuff():
 async def do_stuff():
     # do stuff
     
-    async with async_limit_rate(limiter):
+    async with limit_rate(limiter):
         # do expensive stuff
         pass
 ```
