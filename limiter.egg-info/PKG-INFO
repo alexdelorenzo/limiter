@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: limiter
+Version: 0.0.2
+Summary: Rate-limiting asynchronous and synchronous decorators and context managers that implement the token-bucket algorithm.
+Home-page: https://alexdelorenzo.dev
+Author: Alex DeLorenzo
+License: AGPL-3.0
+Description: UNKNOWN
+Keywords: rate-limit,rate,limit,token,bucket,token-bucket,token_bucket,tokenbucket,decorator,contextmanager
+Platform: UNKNOWN
+Requires-Python: ~=3.7
+Description-Content-Type: text/markdown
