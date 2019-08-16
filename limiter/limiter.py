@@ -1,7 +1,8 @@
+from contextlib import contextmanager, asynccontextmanager,AbstractContextManager, AbstractAsyncContextManager
 from typing import Callable, AsyncContextManager, Any, ContextManager, Awaitable
-from contextlib import contextmanager, asynccontextmanager
 from asyncio import sleep as aiosleep
 from inspect import iscoroutinefunction
+from dataclasses import dataclass
 from functools import wraps
 from time import sleep
 import logging
@@ -10,7 +11,7 @@ from token_bucket import Limiter, MemoryStorage
 
 
 DEFAULT_BUCKET = b"default"
-CONSUME_TOKENS = 1.1
+CONSUME_TOKENS = 1
 RATE = 2
 CAPACITY = 3
 
@@ -24,7 +25,37 @@ def get_limiter(rate: float = RATE, capacity: float = CAPACITY) -> Limiter:
     return Limiter(rate, capacity, MemoryStorage())
 
 
-def limit(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float = CONSUME_TOKENS) -> Callable[[Callable], Callable]:
+@dataclass
+class limit(AbstractContextManager, AbstractAsyncContextManager):
+    """
+    Rate-limiting synchronous/asynchronous context manager.
+    """
+    
+    limiter: Limiter
+    bucket: bytes = DEFAULT_BUCKET
+    consume: float = CONSUME_TOKENS
+        
+    def __call__(self, func):
+        wrapper = limit_calls(self.limiter, self.bucket, self.consume)
+        return wrapper(func)
+
+    def __enter__(self):
+        with limit_rate(self.limiter, self.bucket, self.consume) as limiter:
+            return limiter
+    
+    def __exit__(self, *args):
+        pass
+    
+    async def __aenter__(self):
+        async with async_limit_rate(self.limiter, self.bucket, self.consume) as limiter:
+            return limiter
+        
+    async def __aexit__(self, *args):
+        pass
+
+    
+
+def limit_calls(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float = CONSUME_TOKENS) -> Callable[[Callable], Callable]:
     """
     Rate-limiting decorator for synchronous callables and asynchronous coroutines. 
     
@@ -87,3 +118,4 @@ def limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float 
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
         sleep(sleep_for)
     yield limiter
+

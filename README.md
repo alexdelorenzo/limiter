@@ -1,10 +1,11 @@
 # limiter
 
-Rate-limiting asynchronous and synchronous decorators and context managers that implement the token-bucket algorithm.
+Rate-limiting thread-safe and asynchronous decorators and context managers that implement the token-bucket algorithm.
 
  - Thread-safe, with no need for a timer thread
- - Control burst requests 
- 
+ - Control burst requests
+ - Control average request rate
+ - Easy to use
 
 # Installation
 
@@ -24,12 +25,14 @@ pip3 install limiter
 from asyncio import sleep
 
 from requests import get, Response
-from limiter import get_limiter, limit, limit_rate
+from limiter import get_limiter, limit
 
 
 REFRESH_RATE = 2
-BURST = 3
-limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST)
+BURST_RATE = 3
+
+
+limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 
 @limit(limiter)
@@ -38,14 +41,14 @@ def get_page(url: str) -> Response:
 
 
 @limit(limiter, consume=2)
-async def example():
+async def do_stuff():
     await sleep(0.1)
 
 
 def do_stuff():
     # do stuff
     
-    with limit_rate(limiter, consume=1.5):
+    with limit(limiter, consume=1.5):
         # do expensive stuff
         pass
 
@@ -53,7 +56,12 @@ def do_stuff():
 async def do_stuff():
     # do stuff
     
-    async with limit_rate(limiter):
+    async with limit(limiter):
         # do expensive stuff
         pass
+        
+
+@limit(limiter, bucket=b'other stuff')
+def do_other_stuff():
+    pass
 ```
