@@ -35,18 +35,18 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     bucket: bytes = DEFAULT_BUCKET
     consume: float = CONSUME_TOKENS
         
-    def __call__(self, func):
+    def __call__(self, func: Callable) -> Callable:
         wrapper = limit_calls(self.limiter, self.bucket, self.consume)
         return wrapper(func)
 
-    def __enter__(self):
+    def __enter__(self) -> ContextManager[Limiter]:
         with limit_rate(self.limiter, self.bucket, self.consume) as limiter:
             return limiter
     
     def __exit__(self, *args):
         pass
     
-    async def __aenter__(self):
+    async def __aenter__(self) -> Awaitable[AsyncContextManager[Limiter]]:
         async with async_limit_rate(self.limiter, self.bucket, self.consume) as limiter:
             return limiter
         
