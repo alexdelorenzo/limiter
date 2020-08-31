@@ -93,7 +93,7 @@ async def async_limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, con
         tokens = limiter._storage.get_token_count(bucket)
         sleep_for = (consume - tokens) / limiter._rate
             
-        if sleep_for < 0:
+        if sleep_for <= 0:
             break
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
@@ -112,7 +112,7 @@ def limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float 
         tokens = limiter._storage.get_token_count(bucket)
         sleep_for = (consume - tokens) / limiter._rate
 
-        if sleep_for < 0:
+        if sleep_for <= 0:
             break
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
