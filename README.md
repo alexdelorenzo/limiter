@@ -2,7 +2,7 @@
 
 Rate-limiting thread-safe and asynchronous decorators and context managers that implement the token-bucket algorithm.
 
- - Thread-safe, with no need for a timer thread
+ - [Thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
  - Control burst requests
  - Control average request rate
  - Easy to use
