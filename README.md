@@ -22,9 +22,9 @@ pip3 install limiter
 # Usage
 
 ```python3
-from asyncio import sleep
+from asyncio import sleep as aiosleep
+from time import sleep as tsleep
 
-from requests import get, Response
 from limiter import get_limiter, limit
 
 
@@ -37,12 +37,12 @@ limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 @limit(limiter)
 def get_page(url: str) -> Response:
-    return get(url)
+    tsleep(1)
 
 
 @limit(limiter, consume=2)
 async def do_stuff():
-    await sleep(0.1)
+    await aiosleep(1)
 
 
 def do_stuff():
@@ -65,3 +65,7 @@ async def do_stuff():
 def do_other_stuff():
     pass
 ```
+
+# License
+
+See [`LICENSE`](/LICENSE). If you'd like to use this project with a different license, please get in touch.
