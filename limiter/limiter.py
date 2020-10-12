@@ -1,5 +1,7 @@
-from contextlib import contextmanager, asynccontextmanager,AbstractContextManager, AbstractAsyncContextManager
-from typing import Callable, AsyncContextManager, Any, ContextManager, Awaitable
+from contextlib import contextmanager, asynccontextmanager, \
+    AbstractContextManager, AbstractAsyncContextManager
+from typing import Callable, AsyncContextManager, Any, \
+    ContextManager, Awaitable
 from asyncio import sleep as aiosleep
 from inspect import iscoroutinefunction
 from dataclasses import dataclass
@@ -55,7 +57,11 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
 
     
 
-def limit_calls(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float = CONSUME_TOKENS) -> Callable[[Callable], Callable]:
+def limit_calls(
+    limiter: Limiter, 
+    bucket: bytes = DEFAULT_BUCKET, 
+    consume: float = CONSUME_TOKENS
+) -> Callable[[Callable], Callable]:
     """
     Rate-limiting decorator for synchronous callables and asynchronous coroutines. 
     
