@@ -33,7 +33,7 @@ def get_limiter(rate: float = RATE, capacity: float = CAPACITY) -> Limiter:
 @dataclass
 class limit(AbstractContextManager, AbstractAsyncContextManager):
     """
-    Rate-limiting synchronous/asynchronous context manager.
+    Rate-limiting synchronous/asynchronous context manager and decorator.
     """
 
     limiter: Limiter
