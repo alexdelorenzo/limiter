@@ -6,11 +6,11 @@ readme = Path('README.md').read_text()
 
 
 setup(name="limiter",
-      version="0.1.0",
+      version="0.1.1",
       description="Rate-limiting asynchronous and thread-safe decorators and context managers that implement the token-bucket algorithm.",
       long_description=readme,
       long_description_content_type="text/markdown",
-      url="https://gitlab.com/thismachinechills/limiter",
+      url="https://github.com/alexdelorenzo/limiter",
       author="Alex DeLorenzo",
       license="AGPL-3.0",
       packages=['limiter'],
