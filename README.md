@@ -36,8 +36,9 @@ limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 
 @limit(limiter)
-def get_page(url: str) -> Response:
+def get_page(url: str) -> 'Response':
     tsleep(1)
+    ...
 
 
 @limit(limiter, consume=2)
