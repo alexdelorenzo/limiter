@@ -1,7 +1,7 @@
 from contextlib import contextmanager, asynccontextmanager, \
     AbstractContextManager, AbstractAsyncContextManager
 from typing import Callable, AsyncContextManager, Any, \
-    ContextManager, Awaitable
+    ContextManager, Awaitable, Union, Coroutine
 from asyncio import sleep as aiosleep
 from inspect import iscoroutinefunction
 from dataclasses import dataclass
@@ -18,6 +18,9 @@ RATE = 2
 CAPACITY = 3
 
 
+Decoratable = Union[Callable, Coroutine]
+
+
 def get_limiter(rate: float = RATE, capacity: float = CAPACITY) -> Limiter:
     """
     Returns Limiter object that implements a token-bucket algorithm.
@@ -32,12 +35,12 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     """
     Rate-limiting synchronous/asynchronous context manager.
     """
-    
+
     limiter: Limiter
     bucket: bytes = DEFAULT_BUCKET
     consume: float = CONSUME_TOKENS
         
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(self, func: Decoratable) -> Decoratable:
         wrapper = limit_calls(self.limiter, self.bucket, self.consume)
         return wrapper(func)
 
@@ -61,16 +64,16 @@ def limit_calls(
     limiter: Limiter, 
     bucket: bytes = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
-) -> Callable[[Callable], Callable]:
+) -> Callable[[Decoratable], Decoratable]:
     """
-    Rate-limiting decorator for synchronous callables and asynchronous coroutines. 
+    Rate-limiting decorator for synchronous and asynchronous callables. 
     
     """
     
-    def wrapper(func) -> Callable:
+    def wrapper(func: Decoratable) -> Decoratable:
         if iscoroutinefunction(func):
             @wraps(func)
-            async def new_coroutine(*a, **kw) -> Awaitable:
+            async def new_coroutine(*a, **kw) -> Awaitable[Any]:
                 async with async_limit_rate(limiter, bucket, consume):
                     return await func(*a, **kw)
             return new_coroutine
@@ -89,7 +92,11 @@ def limit_calls(
 
 
 @asynccontextmanager
-async def async_limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float = CONSUME_TOKENS) -> AsyncContextManager[Limiter]:
+async def async_limit_rate(
+    limiter: Limiter, 
+    bucket: bytes = DEFAULT_BUCKET, 
+    consume: float = CONSUME_TOKENS
+) -> AsyncContextManager[Limiter]:
     """
     Rate-limiting asynchronous context manager.
     
@@ -108,7 +115,11 @@ async def async_limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, con
 
 
 @contextmanager
-def limit_rate(limiter: Limiter, bucket: bytes = DEFAULT_BUCKET, consume: float = CONSUME_TOKENS) -> ContextManager[Limiter]:
+def limit_rate(
+    limiter: Limiter, 
+    bucket: bytes = DEFAULT_BUCKET, 
+    consume: float = CONSUME_TOKENS
+) -> ContextManager[Limiter]:
     """
     Thread-safe rate-limiting context manager.
     
