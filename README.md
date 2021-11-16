@@ -22,8 +22,8 @@ pip3 install limiter
 # Usage
 
 ```python3
-from asyncio import sleep as aiosleep
-from time import sleep as tsleep
+import time
+import asyncio
 
 from limiter import get_limiter, limit
 
@@ -37,13 +37,13 @@ limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 @limit(limiter)
 def get_page(url: str) -> 'Response':
-    tsleep(1)
+    time.sleep(1)
     ...
 
 
 @limit(limiter, consume=2)
 async def do_stuff():
-    await aiosleep(1)
+    await asyncio.sleep(1)
 
 
 def do_stuff():
