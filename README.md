@@ -43,7 +43,7 @@ def download_page(url: str) -> bytes:
 
 
 @limit(limiter, consume=2)
-async def download_page(page: bytes) -> bytes:
+async def download_page(url: str) -> bytes:
     await asyncio.sleep(1)
     ...
 
