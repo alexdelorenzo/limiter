@@ -7,18 +7,6 @@ Rate-limiting thread-safe and asynchronous decorators and context managers that 
  - Control average request rate
  - Easy to use
 
-# Installation
-
-## Requirements
-
- - Python 3.7+
- 
-## Installing from PyPI
-
-```bash
-python3 -m pip install limiter
-```
-
 # Usage
 
 ```python3
@@ -66,6 +54,15 @@ def send_email(to: str):
 async def send_email(to: str):
     async with limit(limiter, bucket=MSG_BUCKET):
         ...
+```
+
+# Installation
+## Requirements
+ - Python 3.7+
+ 
+## Installing from PyPI
+```bash
+python3 -m pip install limiter
 ```
 
 # License
