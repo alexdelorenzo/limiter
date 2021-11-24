@@ -30,6 +30,7 @@ from limiter import get_limiter, limit
 
 REFRESH_RATE: int = 2
 BURST_RATE: int = 3
+MSG_BUCKET: bytes = b'messages'
 
 
 limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
@@ -57,14 +58,13 @@ async def send_page(page: bytes):
         ...
         
 
-@limit(limiter, bucket=b'messages')
+@limit(limiter, bucket=MSG_BUCKET)
 def send_email(page: bytes):
     ...
     
 
-
 async def send_email(page: bytes):
-    async with limit(limiter, bucket=b'messages'):
+    async with limit(limiter, bucket=MSG_BUCKET):
         ...
 ```
 
