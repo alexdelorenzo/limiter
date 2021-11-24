@@ -59,11 +59,11 @@ async def send_page(page: bytes):
         
 
 @limit(limiter, bucket=MSG_BUCKET)
-def send_email(page: bytes):
+def send_email(to: str):
     ...
     
 
-async def send_email(page: bytes):
+async def send_email(to: str):
     async with limit(limiter, bucket=MSG_BUCKET):
         ...
 ```
