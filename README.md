@@ -16,7 +16,7 @@ Rate-limiting thread-safe and asynchronous decorators and context managers that 
 ## Installing from PyPI
 
 ```bash
-pip3 install limiter
+python3 -m pip install limiter
 ```
 
 # Usage
@@ -28,43 +28,43 @@ import asyncio
 from limiter import get_limiter, limit
 
 
-REFRESH_RATE = 2
-BURST_RATE = 3
+REFRESH_RATE: int = 2
+BURST_RATE: int = 3
 
 
 limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 
 @limit(limiter)
-def get_page(url: str) -> 'Response':
+def download_page(url: str) -> bytes:
     time.sleep(1)
     ...
 
 
 @limit(limiter, consume=2)
-async def do_stuff():
+async def download_page(page: bytes) -> bytes:
     await asyncio.sleep(1)
+    ...
 
 
-def do_stuff():
-    # do stuff
-    
+def send_page(page: bytes):
     with limit(limiter, consume=1.5):
-        # do expensive stuff
-        pass
+        ...
 
 
-async def do_stuff():
-    # do stuff
-    
+async def send_page(page: bytes):
     async with limit(limiter):
-        # do expensive stuff
-        pass
+        ...
         
 
-@limit(limiter, bucket=b'other stuff')
-def do_other_stuff():
-    pass
+@limit(limiter, bucket=b'messages')
+def send_email(page: bytes):
+    ...
+    
+
+@limit(limiter, bucket=b'messages')
+async def send_email(page: bytes):
+    ...
 ```
 
 # License
