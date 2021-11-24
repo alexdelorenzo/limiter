@@ -62,9 +62,10 @@ def send_email(page: bytes):
     ...
     
 
-@limit(limiter, bucket=b'messages')
+
 async def send_email(page: bytes):
-    ...
+    async with limit(limiter, bucket=b'messages'):
+        ...
 ```
 
 # License
