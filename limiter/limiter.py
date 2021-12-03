@@ -1,7 +1,8 @@
+from __future__ import annotations
+from typing import Callable, AsyncContextManager, Any, \
+    ContextManager, Awaitable, Union, Coroutine, Final
 from contextlib import contextmanager, asynccontextmanager, \
     AbstractContextManager, AbstractAsyncContextManager
-from typing import Callable, AsyncContextManager, Any, \
-    ContextManager, Awaitable, Union, Coroutine
 from asyncio import sleep as aiosleep
 from inspect import iscoroutinefunction
 from dataclasses import dataclass
@@ -12,17 +13,21 @@ import logging
 from token_bucket import Limiter, MemoryStorage
 
 
-DEFAULT_BUCKET: bytes = b"default"
-CONSUME_TOKENS: int = 1
-RATE: int = 2
-CAPACITY: int = 3
+CONSUME_TOKENS: Final[int] = 1
+CAPACITY: Final[int] = 3
+RATE: Final[int] = 2
+WAKE_UP: Final[int] = 0
 
 
+Bucket = bytes
+UserBucket = Bucket | str
 Decoratable = Callable | Coroutine  # can decorate these types
-Bucket = bytes | str
 
 
-def _get_bucket(bucket: Bucket) -> bytes:
+DEFAULT_BUCKET: Final[Bucket] = b"default"
+
+
+def _get_bucket(bucket: UserBucket) -> Bucket:
     match bucket:
         case bytes():
             return bucket
@@ -49,11 +54,11 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     """
 
     limiter: Limiter
-    bucket: Bucket = DEFAULT_BUCKET
+    bucket: UserBucket = DEFAULT_BUCKET
     consume: float = CONSUME_TOKENS
     
     def __post_init__(self):
-        self.bucket: bytes = _get_bucket(self.bucket)
+        self.bucket: Bucket = _get_bucket(self.bucket)
         
     def __call__(self, func: Decoratable) -> Decoratable:
         wrapper = limit_calls(self.limiter, self.bucket, self.consume)
@@ -77,22 +82,22 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
 
 def limit_calls(
     limiter: Limiter, 
-    bucket: Bucket = DEFAULT_BUCKET, 
+    UserBucket: UserBucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> Callable[[Decoratable], Decoratable]:
     """
     Rate-limiting decorator for synchronous and asynchronous callables. 
     """
-    bucket: bytes = _get_bucket(bucket)
+    bucket: Bucket = _get_bucket(bucket)
     
     def wrapper(func: Decoratable) -> Decoratable:
         if iscoroutinefunction(func):
             @wraps(func)
-            async def new_coroutine(*a, **kw) -> Awaitable[Any]:
+            async def new_coroutine_func(*a, **kw) -> Awaitable[Any]:
                 async with async_limit_rate(limiter, bucket, consume):
                     return await func(*a, **kw)
                 
-            return new_coroutine
+            return new_coroutine_func
         
         elif callable(func):
             @wraps(func)
@@ -103,7 +108,7 @@ def limit_calls(
             return new_func
 
         else:
-            raise ValueError(f"Can only decorate callables and coroutines.")
+            raise ValueError(f"Can only decorate callables and coroutine functions.")
 
     return wrapper
 
@@ -111,19 +116,19 @@ def limit_calls(
 @asynccontextmanager
 async def async_limit_rate(
     limiter: Limiter, 
-    bucket: Bucket = DEFAULT_BUCKET, 
+    bucket: UserBucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> AsyncContextManager[Limiter]:
     """
     Rate-limiting asynchronous context manager.
     """
-    bucket: bytes = _get_bucket(bucket)
+    bucket: Bucket = _get_bucket(bucket)
     
     while not limiter.consume(bucket, consume):
         tokens = limiter._storage.get_token_count(bucket)
         sleep_for = (consume - tokens) / limiter._rate
             
-        if sleep_for <= 0:
+        if sleep_for <= WAKE_UP:
             break
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
@@ -135,19 +140,19 @@ async def async_limit_rate(
 @contextmanager
 def limit_rate(
     limiter: Limiter, 
-    bucket: Bucket = DEFAULT_BUCKET, 
+    bucket: UserBucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> ContextManager[Limiter]:
     """
     Thread-safe rate-limiting context manager.
     """
-    bucket: bytes = _get_bucket(bucket)
+    bucket: Bucket = _get_bucket(bucket)
     
     while not limiter.consume(bucket, consume):
         tokens = limiter._storage.get_token_count(bucket)
         sleep_for = (consume - tokens) / limiter._rate
 
-        if sleep_for <= 0:
+        if sleep_for <= WAKE_UP:
             break
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
