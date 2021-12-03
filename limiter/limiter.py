@@ -12,19 +12,31 @@ import logging
 from token_bucket import Limiter, MemoryStorage
 
 
-DEFAULT_BUCKET = b"default"
-CONSUME_TOKENS = 1
-RATE = 2
-CAPACITY = 3
+DEFAULT_BUCKET: bytes = b"default"
+CONSUME_TOKENS: int = 1
+RATE: int = 2
+CAPACITY: int = 3
 
 
-Decoratable = Union[Callable, Coroutine]
+Decoratable = Callable | Coroutine  # can decorate these types
+Bucket = bytes | str
+
+
+def _get_bucket(bucket: Bucket) -> bytes:
+    match bucket:
+        case bytes():
+            return bucket
+        
+        case str():
+            return bucket.encode()
+        
+        case _:
+            raise ValueError('Bucket names must be strings or bytes.')
 
 
 def get_limiter(rate: float = RATE, capacity: float = CAPACITY) -> Limiter:
     """
     Returns Limiter object that implements a token-bucket algorithm.
-    
     """
     
     return Limiter(rate, capacity, MemoryStorage())
@@ -37,8 +49,11 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     """
 
     limiter: Limiter
-    bucket: bytes = DEFAULT_BUCKET
+    bucket: Bucket = DEFAULT_BUCKET
     consume: float = CONSUME_TOKENS
+    
+    def __post_init__(self):
+        self.bucket: bytes = _get_bucket(self.bucket)
         
     def __call__(self, func: Decoratable) -> Decoratable:
         wrapper = limit_calls(self.limiter, self.bucket, self.consume)
@@ -62,13 +77,13 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
 
 def limit_calls(
     limiter: Limiter, 
-    bucket: bytes = DEFAULT_BUCKET, 
+    bucket: Bucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> Callable[[Decoratable], Decoratable]:
     """
     Rate-limiting decorator for synchronous and asynchronous callables. 
-    
     """
+    bucket: bytes = _get_bucket(bucket)
     
     def wrapper(func: Decoratable) -> Decoratable:
         if iscoroutinefunction(func):
@@ -76,6 +91,7 @@ def limit_calls(
             async def new_coroutine(*a, **kw) -> Awaitable[Any]:
                 async with async_limit_rate(limiter, bucket, consume):
                     return await func(*a, **kw)
+                
             return new_coroutine
         
         elif callable(func):
@@ -83,6 +99,7 @@ def limit_calls(
             def new_func(*a, **kw) -> Any:
                 with limit_rate(limiter, bucket, consume):
                     return func(*a, **kw)
+                
             return new_func
 
         else:
@@ -94,13 +111,13 @@ def limit_calls(
 @asynccontextmanager
 async def async_limit_rate(
     limiter: Limiter, 
-    bucket: bytes = DEFAULT_BUCKET, 
+    bucket: Bucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> AsyncContextManager[Limiter]:
     """
     Rate-limiting asynchronous context manager.
-    
     """
+    bucket: bytes = _get_bucket(bucket)
     
     while not limiter.consume(bucket, consume):
         tokens = limiter._storage.get_token_count(bucket)
@@ -111,19 +128,20 @@ async def async_limit_rate(
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
         await aiosleep(sleep_for)
+ 
     yield limiter
 
 
 @contextmanager
 def limit_rate(
     limiter: Limiter, 
-    bucket: bytes = DEFAULT_BUCKET, 
+    bucket: Bucket = DEFAULT_BUCKET, 
     consume: float = CONSUME_TOKENS
 ) -> ContextManager[Limiter]:
     """
     Thread-safe rate-limiting context manager.
-    
     """
+    bucket: bytes = _get_bucket(bucket)
     
     while not limiter.consume(bucket, consume):
         tokens = limiter._storage.get_token_count(bucket)
@@ -134,5 +152,6 @@ def limit_rate(
             
         logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
         sleep(sleep_for)
+
     yield limiter
 
