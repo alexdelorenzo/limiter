@@ -10,9 +10,6 @@ Rate-limiting thread-safe and asynchronous decorators and context managers that 
 # Usage
 
 ```python3
-import time
-import asyncio
-
 from limiter import get_limiter, limit
 
 
@@ -26,13 +23,11 @@ limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 @limit(limiter)
 def download_page(url: str) -> bytes:
-    time.sleep(1)
     ...
 
 
 @limit(limiter, consume=2)
 async def download_page(url: str) -> bytes:
-    await asyncio.sleep(1)
     ...
 
 
