@@ -86,7 +86,6 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
         pass
 
 
-
 def limit_calls(
     limiter: Limiter, 
     BucketName: BucketName = DEFAULT_BUCKET, 
@@ -166,4 +165,3 @@ def limit_rate(
         sleep(sleep_for)
 
     yield limiter
-
