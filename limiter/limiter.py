@@ -130,9 +130,14 @@ async def async_limit_rate(
     """
     bucket: Bucket = _get_bucket(bucket)
 
-    while not limiter.consume(bucket, consume):
-        tokens = limiter._storage.get_token_count(bucket)
-        sleep_for = (consume - tokens) / limiter._rate
+    # minimize attribute look-ups in tight loop
+    get_tokens = limiter._storage.get_token_count
+    lim_consume = limiter.consume
+    rate = limiter._rate
+
+    while not lim_consume(bucket, consume):
+        tokens = get_tokens(bucket)
+        sleep_for = (consume - tokens) / rate
 
         if sleep_for <= WAKE_UP:
             break
@@ -154,9 +159,14 @@ def limit_rate(
     """
     bucket: Bucket = _get_bucket(bucket)
 
-    while not limiter.consume(bucket, consume):
-        tokens = limiter._storage.get_token_count(bucket)
-        sleep_for = (consume - tokens) / limiter._rate
+    # minimize attribute look-ups in tight loop
+    get_tokens = limiter._storage.get_token_count
+    lim_consume = limiter.consume
+    rate = limiter._rate
+
+    while not lim_consume(bucket, consume):
+        tokens = get_tokens(bucket)
+        sleep_for = (consume - tokens) / rate
 
         if sleep_for <= WAKE_UP:
             break
