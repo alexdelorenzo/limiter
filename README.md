@@ -8,7 +8,7 @@ Rate-limiting thread-safe and asynchronous decorators and context managers that 
  - Easy to use
 
 # Usage
-
+You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit`.
 ```python3
 from limiter import get_limiter, limit
 
@@ -39,15 +39,40 @@ def send_page(page: bytes):
 async def send_page(page: bytes):
     async with limit(limiter):
         ...
-        
+
 
 @limit(limiter, bucket=MSG_BUCKET)
 def send_email(to: str):
     ...
-    
+
 
 async def send_email(to: str):
     async with limit(limiter, bucket=MSG_BUCKET):
+        ...
+```
+
+You can define a static `limit` and share it between blocks of code:
+```python
+limit_download = limit(limter, consume=2)
+
+
+@limit_download
+def download_page(url: str) -> bytes:
+    ...
+
+
+@limit_download
+async def download_page(url: str) -> bytes:
+    ...
+
+
+def download_image(url: str) -> bytes:
+    with limit_download:
+        ...
+
+
+async def download_image(url: str) -> bytes:
+    async with limit_download:
         ...
 ```
 
