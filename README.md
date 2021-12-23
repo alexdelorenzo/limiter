@@ -8,7 +8,7 @@ Rate-limiting thread-safe and asynchronous decorators and context managers that 
  - Easy to use
 
 # Usage
-You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit`.
+You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit`:
 ```python3
 from limiter import get_limiter, limit
 
