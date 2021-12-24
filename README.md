@@ -1,4 +1,4 @@
-# `limiter`: Easy rate limiting for Python
+# ⏲️ Easy rate limiting for Python
 
 `limiter` makes it easy to add [rate limiting](https://en.wikipedia.org/wiki/Rate_limiting) to Python projects, using a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. `limiter` can provide Python projects and scripts with:
   - Rate limiting thread-safe [decorators](https://www.python.org/dev/peps/pep-0318/)
