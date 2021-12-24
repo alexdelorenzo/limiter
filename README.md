@@ -53,26 +53,26 @@ async def send_email(to: str):
 
 You can define a static `limit` and share it between blocks of code:
 ```python
-limit_download = limit(limter, consume=2)
+limit_downloads = limit(limter, consume=2)
 
 
-@limit_download
+@limit_downloads
 def download_page(url: str) -> bytes:
     ...
 
 
-@limit_download
+@limit_downloads
 async def download_page(url: str) -> bytes:
     ...
 
 
 def download_image(url: str) -> bytes:
-    with limit_download:
+    with limit_downloads:
         ...
 
 
 async def download_image(url: str) -> bytes:
-    async with limit_download:
+    async with limit_downloads:
         ...
 ```
 
