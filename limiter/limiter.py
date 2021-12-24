@@ -4,13 +4,11 @@ from typing import Callable, AsyncContextManager, Any, \
     ParamSpec
 from contextlib import contextmanager, asynccontextmanager, \
     AbstractContextManager, AbstractAsyncContextManager
-from asyncio import sleep as aiosleep
-from inspect import iscoroutinefunction
+from asyncio import sleep as aiosleep, iscoroutinefunction
 from dataclasses import dataclass
 from functools import wraps
 from time import sleep
-import logging
-
+from logging import debug
 from token_bucket import Limiter, MemoryStorage
 
 
@@ -42,8 +40,7 @@ def _get_bucket(name: BucketName) -> Bucket:
         case str():
             return name.encode()
 
-        case _:
-            raise ValueError('Names must be strings or bytes.')
+    raise ValueError('Name must be a string or bytes.')
 
 
 def get_limiter(rate: float = RATE, capacity: float = CAPACITY) -> Limiter:
@@ -78,7 +75,7 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     def __exit__(self, *args):
         pass
 
-    async def __aenter__(self) -> Awaitable[AsyncContextManager[Limiter]]:
+    async def __aenter__(self) -> AsyncContextManager[Limiter]:
         async with async_limit_rate(self.limiter, self.bucket, self.consume) as limiter:
             return limiter
 
@@ -142,7 +139,7 @@ async def async_limit_rate(
         if sleep_for <= WAKE_UP:
             break
 
-        logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+        debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
         await aiosleep(sleep_for)
  
     yield limiter
@@ -171,7 +168,7 @@ def limit_rate(
         if sleep_for <= WAKE_UP:
             break
 
-        logging.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+        debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
         sleep(sleep_for)
 
     yield limiter
