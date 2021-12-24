@@ -1,14 +1,21 @@
-# limiter
+# `limiter`: Easy rate limiting for Python
 
-Rate-limiting thread-safe and asynchronous decorators and context managers that implement the token-bucket algorithm.
+`limiter` makes it easy to add [rate limiting](https://en.wikipedia.org/wiki/Rate_limiting) to Python projects, using a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. `limiter` can provide Python projects and scripts with:
+  - Rate limiting thread-safe [decorators](https://www.python.org/dev/peps/pep-0318/)
+  - Rate limiting async decorators
+  - Rate limiting thread-safe [context-managers](https://www.python.org/dev/peps/pep-0343/)
+  - Rate limiting [async context-managers](https://www.python.org/dev/peps/pep-0492/#asynchronous-context-managers-and-async-with)
 
- - [Thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
- - Control burst requests
- - Control average request rate
- - Easy to use
+Here are a few benefits of using `limiter`:
+ - Easily control burst and average request rates
+ - `limiter` is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
+ - Has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
 
 # Usage
-You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit`:
+You can define [dynamic](#dynamic-limit) and [static](#static-limit) limiters, and use them across your project.
+
+### Dynamic `limit`
+You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit()`:
 ```python3
 from limiter import get_limiter, limit
 
@@ -51,6 +58,7 @@ async def send_email(to: str):
         ...
 ```
 
+### Static `limit`
 You can define a static `limit` and share it between blocks of code:
 ```python
 limit_downloads = limit(limter, consume=2)
