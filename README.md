@@ -11,13 +11,31 @@ Here are a few benefits of using `limiter`:
  - `limiter` is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
  - Has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
 
+## Example
+```python
+from aiohttp import ClientSession
+from limiter import Limiter
+
+
+limit_downloads = Limiter.static(rate=2, capacity=6 consume=2)
+
+
+async def download(url: str) -> str:
+  async with (
+    limit_downloads,
+    ClientSession() as session,
+    session.get(url) as response,
+  ):
+    return await response.text()
+```
+
 # Usage
 You can define [dynamic](#dynamic-limit) and [static](#static-limit) limiters, and use them across your project.
 
 ### Dynamic `limit`
 You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit()`:
 ```python3
-from limiter import get_limiter, limit
+from limiter import limit, Limiter
 
 
 REFRESH_RATE: int = 2
@@ -25,43 +43,47 @@ BURST_RATE: int = 3
 MSG_BUCKET: bytes = b'messages'
 
 
-limiter = get_limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
+limiter = Limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
 
 
-@limit(limiter)
+@limiter.limit()
 def download_page(url: str) -> bytes:
     ...
 
 
-@limit(limiter, consume=2)
+@limiter.limit(consume=2)
 async def download_page(url: str) -> bytes:
     ...
 
 
 def send_page(page: bytes):
-    with limit(limiter, consume=1.5):
+    with limiter.limit(consume=1.5):
         ...
 
 
 async def send_page(page: bytes):
-    async with limit(limiter):
+    async with limiter.limit():
         ...
 
 
-@limit(limiter, bucket=MSG_BUCKET)
+@limiter.limit(bucket=MSG_BUCKET)
 def send_email(to: str):
     ...
 
 
 async def send_email(to: str):
-    async with limit(limiter, bucket=MSG_BUCKET):
+    async with limiter.limit(bucket=MSG_BUCKET):
         ...
 ```
 
 ### Static `limit`
 You can define a static `limit` and share it between blocks of code:
 ```python
-limit_downloads = limit(limter, consume=2)
+# you can reuse existing limiters statically
+limit_downloads = limiter.limit(consume=2)
+
+# or you can define new static limiters
+limit_downloads = Limiter.static(REFRESH_RATE, BURST_RATE, consume=2)
 
 
 @limit_downloads
