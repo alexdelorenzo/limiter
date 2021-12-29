@@ -10,16 +10,17 @@ from logging import debug
 from token_bucket import Limiter as _Limiter  # type: ignore
 
 from .base import (
-  TokenAmount, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
-  BucketName, _get_limiter, _get_bucket, _get_bucket_limiter, Bucket,
-  Decoratable, Decorated, Decorator, P, T, WAKE_UP
+    Tokens, Decoratable, Decorated, Decorator, P, T, Bucket,
+    BucketName, _get_limiter, _get_bucket, _get_bucket_limiter,
+    _get_sleep_duration, WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS,
+    DEFAULT_BUCKET
 )
 
 
 @dataclass
 class Limiter:
-    rate: TokenAmount = RATE
-    capacity: TokenAmount = CAPACITY
+    rate: Tokens = RATE
+    capacity: Tokens = CAPACITY
 
     limiter: _Limiter | None = None
 
@@ -29,16 +30,16 @@ class Limiter:
 
     def limit(
       self,
-      consume: TokenAmount = CONSUME_TOKENS,
+      consume: Tokens = CONSUME_TOKENS,
       bucket: BucketName = DEFAULT_BUCKET,
     ) -> limit:
       return limit(self, consume, bucket)
 
     @staticmethod
     def static(
-      rate: TokenAmount = RATE,
-      capacity: TokenAmount = CAPACITY,
-      consume: TokenAmount = CONSUME_TOKENS,
+      rate: Tokens = RATE,
+      capacity: Tokens = CAPACITY,
+      consume: Tokens = CONSUME_TOKENS,
       bucket: BucketName = DEFAULT_BUCKET,
     ) -> limit:
       limiter = Limiter(rate, capacity)
@@ -52,7 +53,7 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     """
 
     limiter: Limiter
-    consume: TokenAmount = CONSUME_TOKENS
+    consume: Tokens = CONSUME_TOKENS
     bucket: BucketName = DEFAULT_BUCKET
 
     def __post_init__(self):
@@ -79,10 +80,10 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
     @classmethod
     def static(
       cls: Type[limit],
-      rate: TokenAmount = RATE,
-      capacity: TokenAmount = CAPACITY,
+      rate: Tokens = RATE,
+      capacity: Tokens = CAPACITY,
       bucket: BucketName = DEFAULT_BUCKET,
-      consume: TokenAmount = CONSUME_TOKENS,
+      consume: Tokens = CONSUME_TOKENS,
     ) -> limit:
       limiter = _get_limiter(rate, capacity)
       return cls(limiter, consume, bucket)
@@ -90,7 +91,7 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
 
 def limit_calls(
     limiter: Limiter,
-    consume: TokenAmount = CONSUME_TOKENS,
+    consume: Tokens = CONSUME_TOKENS,
     bucket: BucketName = DEFAULT_BUCKET,
 ) -> Decorator[P, T]:
     """
@@ -124,7 +125,7 @@ def limit_calls(
 @asynccontextmanager
 async def async_limit_rate(
     limiter: Limiter,
-    consume: TokenAmount = CONSUME_TOKENS,
+    consume: Tokens = CONSUME_TOKENS,
     bucket: BucketName = DEFAULT_BUCKET,
 ) -> AsyncContextManager[Limiter]:
     """
@@ -139,7 +140,7 @@ async def async_limit_rate(
 
     while not lim_consume(bucket, consume):
         tokens = get_tokens(bucket)
-        sleep_for = (consume - tokens) / rate
+        sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=True)
 
         if sleep_for <= WAKE_UP:
             break
@@ -153,7 +154,7 @@ async def async_limit_rate(
 @contextmanager
 def limit_rate(
     limiter: Limiter,
-    consume: TokenAmount = CONSUME_TOKENS,
+    consume: Tokens = CONSUME_TOKENS,
     bucket: BucketName = DEFAULT_BUCKET,
 ) -> ContextManager[Limiter]:
     """
@@ -168,7 +169,7 @@ def limit_rate(
 
     while not lim_consume(bucket, consume):
         tokens = get_tokens(bucket)
-        sleep_for = (consume - tokens) / rate
+        sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=True)
 
         if sleep_for <= WAKE_UP:
             break
