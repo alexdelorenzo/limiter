@@ -6,10 +6,11 @@
   - Rate limiting thread-safe [context-managers](https://www.python.org/dev/peps/pep-0343/)
   - Rate limiting [async context-managers](https://www.python.org/dev/peps/pep-0492/#asynchronous-context-managers-and-async-with)
 
-Here are a few benefits of using `limiter`:
+Here are a few benefits of using `limiter` and its features:
  - Easily control burst and average request rates
  - `limiter` is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
- - Has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
+ - `limiter` has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
+ - `limiter` uses [backoff and jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to manage contention
 
 ## Example
 ```python
@@ -17,7 +18,7 @@ from aiohttp import ClientSession
 from limiter import Limiter
 
 
-limit_downloads = Limiter.static(rate=2, capacity=6 consume=2)
+limit_downloads = Limiter.static(rate=2, capacity=5, consume=2)
 
 
 async def download(url: str) -> str:
