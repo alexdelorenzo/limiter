@@ -25,8 +25,7 @@ limit_downloads = Limiter.static(rate=2, capacity=5, consume=2)
 async def download_image(url: str) -> bytes:
   ...
 
-
-# or, using context managers
+# or
 
 async def download_page(url: str) -> str:
   async with (
