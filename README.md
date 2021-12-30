@@ -13,6 +13,7 @@ Here are a few benefits of using `limiter` and its features:
  - `limiter` uses [jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
 
 ## Example
+Here's an example of using a static limiter as a decorator and context manager:
 ```python
 from aiohttp import ClientSession
 from limiter import Limiter
