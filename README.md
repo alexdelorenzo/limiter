@@ -10,7 +10,7 @@ Here are a few benefits of using `limiter` and its features:
  - Easily control burst and average request rates
  - `limiter` is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
  - `limiter` has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
- - `limiter` uses [backoff and jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to manage contention
+ - `limiter` uses [jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
 
 ## Example
 ```python
@@ -21,7 +21,14 @@ from limiter import Limiter
 limit_downloads = Limiter.static(rate=2, capacity=5, consume=2)
 
 
-async def download(url: str) -> str:
+@limit_downloads
+async def download_image(url: str) -> bytes:
+  ...
+
+
+# or, using context managers
+
+async def download_page(url: str) -> str:
   async with (
     limit_downloads,
     ClientSession() as session,
@@ -109,13 +116,13 @@ async def download_image(url: str) -> bytes:
 
 # Installation
 ## Requirements
- - Python 3.7+
- 
-## Installing from PyPI
+ - Python 3.10+ for versions `0.3.0` and up
+ - Python 3.7+ for versions below `0.3.0`
+
+## Install via PyPI
 ```bash
-python3 -m pip install limiter
+$ python3 -m pip install limiter
 ```
 
 # License
-
 See [`LICENSE`](/LICENSE). If you'd like to use this project with a different license, please get in touch.
