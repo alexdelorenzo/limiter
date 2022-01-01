@@ -96,7 +96,9 @@ assert limiter != limit_msgs
 ```
 
 ### Creating new limiters
-You can reuse existing limiters in your code, and you can create new limiters from the parameters of an existing limiter using the `new()` method. Or, you can define a new limiter entirely.
+You can reuse existing limiters in your code, and you can create new limiters from the parameters of an existing limiter using the `new()` method. 
+
+Or, you can define a new limiter entirely:
 ```python
 # you can reuse existing limiters
 limit_downloads: Limiter = limiter(consume=2)
