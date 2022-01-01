@@ -87,7 +87,7 @@ async def send_email(to: str):
         ...
 ```
 
-In the example above, both `limiter` and `limit_msgs` share the same limiter. The only difference is that `limit_msgs` will take token from the `MSG_BUCKET` bucket by default.
+In the example above, both `limiter` and `limit_msgs` share the same limiter. The only difference is that `limit_msgs` will take tokens from the `MSG_BUCKET` bucket by default.
 
 ```python3
 assert limiter.limiter is limit_msgs.limiter
@@ -132,7 +132,8 @@ async def download_image(url: str) -> bytes:
 
 Let's look at the difference between reusing an existing limiter, and creating new limiters with the `new()` method:
 
-```python3
+```python3assert limiter_a != limiter_b
+
 limiter_a: Limiter = limiter(consume=2)
 limiter_b: Limiter = limiter.new(consume=2)
 limiter_c: Limiter = Limiter(REFRESH_RATE, BURST_RATE, consume=2)
