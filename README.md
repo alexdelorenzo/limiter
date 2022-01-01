@@ -41,7 +41,7 @@ async def download_page(url: str) -> str:
 You can define set limiters and use them dynamically across your project.
 
 ### Limiting blocks of code
-`limiter` can rate limit all Python callables and context managers.
+`limiter` can rate limit all Python callables and it can also be used as context managers.
 
 You can define a limiter with a set `rate` and `capacity`, then you can consume a dynamic amount of tokens from different buckets:
 ```python3
