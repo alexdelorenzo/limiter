@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Final, TypeVar, ParamSpec
+from typing import Final, TypeVar, ParamSpec, Callable, Awaitable
 from random import random
 
 from token_bucket import Limiter as _Limiter, MemoryStorage
@@ -52,7 +52,7 @@ def _get_limiter(rate: Tokens = RATE, capacity: Tokens = CAPACITY) -> _Limiter:
 def _get_bucket_limiter(bucket: BucketName, limiter: Limiter) -> tuple[Bucket, _Limiter]:
     bucket: Bucket = _get_bucket(bucket)
 
-    if isinstance(limiter, Limiter):
+    if not isinstance(limiter, _Limiter):
         limiter: _Limiter = limiter.limiter
 
     return bucket, limiter

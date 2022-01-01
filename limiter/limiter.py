@@ -3,7 +3,7 @@ from typing import AsyncContextManager, ContextManager, Awaitable, Type
 from contextlib import contextmanager, asynccontextmanager, \
     AbstractContextManager, AbstractAsyncContextManager
 from asyncio import sleep as aiosleep, iscoroutinefunction
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from functools import wraps
 from time import sleep
 from logging import debug
@@ -17,37 +17,85 @@ from .base import (
 )
 
 
+LIM_KEY: str = 'limiter'
+
+
+class LimitCtxManagerMixin(
+  AbstractContextManager,
+  AbstractAsyncContextManager
+):
+    limiter: Limiter
+    consume: Tokens
+    bucket: BucketName
+
+    def __enter__(self) -> ContextManager[Limiter]:
+        with limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+            return limiter
+
+    def __exit__(self, *args):
+        pass
+
+    async def __aenter__(self) -> AsyncContextManager[Limiter]:
+        async with async_limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+            return limiter
+
+    async def __aexit__(self, *args):
+        pass
+
+
 @dataclass
-class Limiter:
+class Limiter(LimitCtxManagerMixin):
     rate: Tokens = RATE
     capacity: Tokens = CAPACITY
+
+    consume: Tokens | None = None
+    bucket: BucketName = DEFAULT_BUCKET
 
     limiter: _Limiter | None = None
 
     def __post_init__(self):
-      limiter = _get_limiter(self.rate, self.capacity)
-      self.limiter = limiter
+      if self.limiter is None:
+        limiter = _get_limiter(self.rate, self.capacity)
+        self.limiter = limiter
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Decorated[P, T] | Limiter:
+      match args:
+        case func, *_ if callable(func):
+          wrapper = limit_calls(self.limiter, self.consume, self.bucket)
+          return wrapper(func)
+
+      return Limiter(*args, **kwargs, limiter=self.limiter)
 
     def limit(
       self,
       consume: Tokens = CONSUME_TOKENS,
       bucket: BucketName = DEFAULT_BUCKET,
-    ) -> limit:
-      return limit(self, consume, bucket)
+    ) -> Limiter:
+      return Limiter(self.rate, self.capacity, consume, bucket, limiter=self.limiter)
 
-    @staticmethod
-    def static(
-      rate: Tokens = RATE,
-      capacity: Tokens = CAPACITY,
-      consume: Tokens = CONSUME_TOKENS,
-      bucket: BucketName = DEFAULT_BUCKET,
-    ) -> limit:
-      limiter = Limiter(rate, capacity)
-      return limit(limiter, consume, bucket)
+    def new(self, **kwargs):
+      current_attrs = asdict(self)
+      new_attrs = {**current_attrs, **kwargs}
+      new_attrs.pop(LIM_KEY, None)
+
+      return Limiter(**new_attrs)
+
+    def to_dict(self) -> dict[str, Tokens | BucketName | _Limiter]:
+      return asdict(self)
+
+    #@staticmethod
+    #def static(
+      #rate: Tokens = RATE,
+      #capacity: Tokens = CAPACITY,
+      #consume: Tokens = CONSUME_TOKENS,
+      #bucket: BucketName = DEFAULT_BUCKET,
+    #) -> limit:
+      #limiter = Limiter(rate, capacity)
+      #return limit(limiter, consume, bucket)
 
 
 @dataclass
-class limit(AbstractContextManager, AbstractAsyncContextManager):
+class limit(LimitCtxManagerMixin):
     """
     Rate-limiting blocking and non-blocking context-manager and decorator.
     """
@@ -58,24 +106,6 @@ class limit(AbstractContextManager, AbstractAsyncContextManager):
 
     def __post_init__(self):
         self.bucket: Bucket = _get_bucket(self.bucket)
-
-    def __call__(self, func: Decoratable[P, T]) -> Decorated[P, T]:
-        wrapper = limit_calls(self.limiter, self.bucket, self.consume)
-        return wrapper(func)
-
-    def __enter__(self) -> ContextManager[Limiter]:
-        with limit_rate(self.limiter, self.bucket, self.consume) as limiter:
-            return limiter
-
-    def __exit__(self, *args):
-        pass
-
-    async def __aenter__(self) -> AsyncContextManager[Limiter]:
-        async with async_limit_rate(self.limiter, self.bucket, self.consume) as limiter:
-            return limiter
-
-    async def __aexit__(self, *args):
-        pass
 
     @classmethod
     def static(
@@ -106,6 +136,7 @@ def limit_calls(
                 async with async_limit_rate(limiter, consume, bucket):
                     return await func(*args, **kwargs)
 
+            new_coroutine_func.limiter = limiter
             return new_coroutine_func
 
         elif callable(func):
@@ -114,6 +145,7 @@ def limit_calls(
                 with limit_rate(limiter, consume, bucket):
                     return func(*args, **kwargs)
 
+            new_func.limiter = limiter
             return new_func
 
         else:

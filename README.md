@@ -13,13 +13,13 @@ Here are a few benefits of using `limiter` and its features:
  - `limiter` uses [jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
 
 ## Example
-Here's an example of using a static limiter as a decorator and context manager:
+Here's an example of using a limiter as a decorator and context manager:
 ```python
 from aiohttp import ClientSession
 from limiter import Limiter
 
 
-limit_downloads = Limiter.static(rate=2, capacity=5, consume=2)
+limit_downloads = Limiter(rate=2, capacity=5, consume=2)
 
 
 @limit_downloads
@@ -38,10 +38,12 @@ async def download_page(url: str) -> str:
 ```
 
 # Usage
-You can define [dynamic](#dynamic-limit) and [static](#static-limit) limiters, and use them across your project.
+You can define set limiters and use them dynamically across your project.
 
-### Dynamic `limit`
-You can define a limiter with a set `rate` and `capacity`. Then you can consume a dynamic amount of tokens from different buckets using `limit()`:
+### Limiting blocks of code
+`limiter` can rate limit all Python callables and context managers.
+
+You can define a limiter with a set `rate` and `capacity`, then you can consume a dynamic amount of tokens from different buckets:
 ```python3
 from limiter import limit, Limiter
 
@@ -51,47 +53,59 @@ BURST_RATE: int = 3
 MSG_BUCKET: bytes = b'messages'
 
 
-limiter = Limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
+limiter: Limiter = Limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
+limit_msgs: Limiter = limiter(bucket=MSG_BUCKET)
 
 
-@limiter.limit()
+@limiter
 def download_page(url: str) -> bytes:
     ...
 
 
-@limiter.limit(consume=2)
+@limiter(consume=2)
 async def download_page(url: str) -> bytes:
     ...
 
 
 def send_page(page: bytes):
-    with limiter.limit(consume=1.5):
+    with limiter(consume=1.5, bucket=MSG_BUCKET):
         ...
 
 
 async def send_page(page: bytes):
-    async with limiter.limit():
+    async with limit_msgs:
         ...
 
 
-@limiter.limit(bucket=MSG_BUCKET)
+@limit_msgs(consume=3)
 def send_email(to: str):
     ...
 
 
 async def send_email(to: str):
-    async with limiter.limit(bucket=MSG_BUCKET):
+    async with limiter(bucket=MSG_BUCKET):
         ...
 ```
 
-### Static `limit`
-You can define a static `limit` and share it between blocks of code:
-```python
-# you can reuse existing limiters statically
-limit_downloads = limiter.limit(consume=2)
+In the example above, both `limiter` and `limit_msgs` share the same limiter. The only difference is that `limit_msgs` will take token from the `MSG_BUCKET` bucket by default.
 
-# or you can define new static limiters
-limit_downloads = Limiter.static(REFRESH_RATE, BURST_RATE, consume=2)
+```python3
+assert limiter.limiter is limit_msgs.limiter
+assert limiter.bucket != limit_msgs.bucket
+assert limiter != limit_msgs
+```
+
+### Creating new limiters
+You can reuse existing limiters in your code, and you can create new limiters from the parameters of an existing limiter using the `new()` method. Or, you can define a new limiter entirely.
+```python
+# you can reuse existing limiters
+limit_downloads: Limiter = limiter(consume=2)
+
+# you can use the settings from an existing limiter in a new limiter
+limit_downloads: Limiter = limiter.new(consume=2)
+
+# or you can simply define a new limiter
+limit_downloads: Limiter = Limiter(REFRESH_RATE, BURST_RATE, consume=2)
 
 
 @limit_downloads
@@ -112,6 +126,22 @@ def download_image(url: str) -> bytes:
 async def download_image(url: str) -> bytes:
     async with limit_downloads:
         ...
+```
+
+Let's look at the difference between reusing an existing limiter, and creating new limiters with the `new()` method:
+
+```python3
+limiter_a: Limiter = limiter(consume=2)
+limiter_b: Limiter = limiter.new(consume=2)
+limiter_c: Limiter = Limiter(REFRESH_RATE, BURST_RATE, consume=2)
+
+
+assert limiter_a != limiter
+assert limiter_a != limiter_b != limiter_c
+
+assert limiter_a.limiter is limiter.limiter
+assert limiter_a.limiter is not limiter_b.limiter
+assert limiter_a != limiter_b
 ```
 
 # Installation
