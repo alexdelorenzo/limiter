@@ -66,7 +66,7 @@ def _get_sleep_duration(
     units: UnitsInSecond = MS_IN_SEC
 ) -> Duration:
     """Increase contention by adding jitter to sleep duration"""
-    duration: Duration = (consume - token) / rate
+    duration: Duration = (consume - tokens) / rate
 
     if jitter:
         amount: Duration = random() / units
