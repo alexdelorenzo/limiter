@@ -8,9 +8,9 @@
 
 Here are a few benefits of using `limiter` and its features:
  - Easily control burst and average request rates
- - `limiter` is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
- - `limiter` has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
- - `limiter` uses [jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
+ - It is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm)
+ - It has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
+ - It uses [jitter](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
 
 ## Example
 Here's an example of using a limiter as a decorator and context manager:
@@ -38,12 +38,12 @@ async def download_page(url: str) -> str:
 ```
 
 # Usage
-You can define set limiters and use them dynamically across your project.
+You can define limiters and use them dynamically across your project.
 
 ### Limiting blocks of code
-`limiter` can rate limit all Python callables and it can also be used as context managers.
+`limiter` can rate limit all Python callables, and limiters can be used as context managers.
 
-You can define a limiter with a set `rate` and `capacity`, then you can consume a dynamic amount of tokens from different buckets:
+You can define a limiter with a set refresh `rate` and total token `capacity`. You can set the amount of tokens to consume dynamically with `consume`, and the `bucket` parameter sets the bucket to consume tokens from:
 ```python3
 from limiter import limit, Limiter
 
