@@ -131,7 +131,6 @@ async def download_image(url: str) -> bytes:
 ```
 
 Let's look at the difference between reusing an existing limiter, and creating new limiters with the `new()` method:
-
 ```python3
 limiter_a: Limiter = limiter(consume=2)
 limiter_b: Limiter = limiter.new(consume=2)
@@ -140,10 +139,14 @@ limiter_c: Limiter = Limiter(REFRESH_RATE, BURST_RATE, consume=2)
 assert limiter_a != limiter
 assert limiter_a != limiter_b != limiter_c
 
+assert limiter_a != limiter_b
 assert limiter_a.limiter is limiter.limiter
 assert limiter_a.limiter is not limiter_b.limiter
-assert limiter_a != limiter_b
+
+assert limiter_a.attrs == limiter_b.attrs == limiter_c.attrs
 ```
+
+The only things that are equivalent between the three new limiters above are the limiters' attributes, like the `rate`, `capacity`, and `consume` attributes.
 
 # Installation
 ## Requirements
