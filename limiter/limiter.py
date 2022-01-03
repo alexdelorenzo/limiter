@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import AsyncContextManager, ContextManager, Awaitable, Type
+
+from typing import AsyncContextManager, ContextManager, Awaitable
 from contextlib import (
     AbstractContextManager, AbstractAsyncContextManager,
     contextmanager, asynccontextmanager
@@ -7,16 +8,18 @@ from contextlib import (
 from asyncio import sleep as aiosleep, iscoroutinefunction
 from dataclasses import dataclass, asdict
 from functools import wraps
-from abc import ABC
-from time import sleep
 from logging import debug
+from enum import auto
+from time import sleep
+from abc import ABC
 
+from strenum import StrEnum  # type: ignore
 from token_bucket import Limiter as _Limiter  # type: ignore
 
 from .base import (
-    WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET
-    Tokens, Decoratable, Decorated, Decorator, P, T, Bucket,
-    BucketName, _get_limiter, _get_bucket, _get_bucket_limiter,
+    WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
+    Tokens, Decoratable, Decorated, Decorator, P, T,
+    BucketName, _get_limiter, _get_bucket_limiter,
     _get_sleep_duration
 )
 
@@ -24,13 +27,14 @@ from .base import (
 LIM_KEY: str = 'limiter'
 
 
-LimiterAttrs = dict[str, Tokens | BucketName | _Limiter]
+Attrs = dict[str, Tokens | BucketName | _Limiter]
 
 
 class LimiterBase(ABC):
-    limiter: Limiter
     consume: Tokens
     bucket: BucketName
+
+    limiter: _Limiter
 
 
 class LimiterCtxMixin(
@@ -53,8 +57,18 @@ class LimiterCtxMixin(
         pass
 
 
+class AttrName(StrEnum):
+    rate: str = auto()
+    capacity: str = auto()
+
+    consume: str = auto()
+    bucket: str = auto()
+
+    limiter: str = auto()
+
+
 @dataclass
-class Limiter(LimiterBase, LimiterCtxMixin):
+class Limiter(LimiterCtxMixin):
     rate: Tokens = RATE
     capacity: Tokens = CAPACITY
 
@@ -71,33 +85,46 @@ class Limiter(LimiterBase, LimiterCtxMixin):
       if self.consume is None:
         self.consume = CONSUME_TOKENS
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Decorated[P, T] | Limiter:
-      match args:
-        case func, *_ if callable(func):
-          wrapper = limit_calls(self.limiter, self.consume, self.bucket)
+    def __call__(
+      self,
+      func_or_consume: Decoratable[P, T] | Tokens | None = None,
+      bucket: BucketName | None = None,
+      **kwargs,
+    ) -> Decorated[P, T] | Limiter:
+      if func_or_consume is None:
+        pass
 
-          return wrapper(func)
+      elif callable(func_or_consume):
+        wrapper = limit_calls(self.limiter, self.consume, self.bucket)
+        return wrapper(func_or_consume)
 
-      if not args and not kwargs:
-        kwargs = self.attrs
+      elif not isinstance(func_or_consume, Tokens):
+        raise ValueError(f'First argument must be a callable or {Tokens}')
 
-      return Limiter(*args, **kwargs, limiter=self.limiter)
+      if AttrName.rate in kwargs or AttrName.capacity in kwargs:
+        raise ValueError('Create a new limiter with the new}() method or Limiter class')
+
+      consume: Tokens = func_or_consume
+      new_attrs: Attrs = self.attrs
+
+      if consume:
+        new_attrs[AttrName.consume] = consume
+
+      if bucket:
+        new_attrs[AttrName.bucket] = bucket
+
+      new_attrs |= kwargs
+
+      return Limiter(**new_attrs, limiter=self.limiter)
 
     @property
-    def attrs(self) -> LimiterAttrs:
+    def attrs(self) -> Attrs:
       attrs = asdict(self)
       attrs.pop(LIM_KEY, None)
 
       return attrs
 
-    def limit(
-      self,
-      consume: Tokens = CONSUME_TOKENS,
-      bucket: BucketName = DEFAULT_BUCKET,
-    ) -> Limiter:
-      return Limiter(self.rate, self.capacity, consume, bucket, limiter=self.limiter)
-
-    def new(self, **new_attrs: LimiterAttrs):
+    def new(self, **new_attrs: Attrs):
       updated_attrs = self.attrs | new_attrs
 
       return Limiter(**updated_attrs)
@@ -150,7 +177,7 @@ async def async_limit_rate(
     """
     bucket, limiter = _get_bucket_limiter(bucket, limiter)
 
-    # minimize attribute look-ups in tight loop
+    # minimize attribute look ups in loop
     get_tokens = limiter._storage.get_token_count
     lim_consume = limiter.consume
     rate = limiter._rate
@@ -179,7 +206,7 @@ def limit_rate(
     """
     bucket, limiter = _get_bucket_limiter(bucket, limiter)
 
-    # minimize attribute look-ups in tight loop
+    # minimize attribute look ups in loop
     get_tokens = limiter._storage.get_token_count
     lim_consume = limiter.consume
     rate = limiter._rate
