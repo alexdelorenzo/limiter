@@ -47,12 +47,12 @@ You can define limiters and use them dynamically across your project.
 
 You can define a limiter with a set refresh `rate` and total token `capacity`. You can set the amount of tokens to consume dynamically with `consume`, and the `bucket` parameter sets the bucket to consume tokens from:
 ```python3
-from limiter import limit, Limiter
+from limiter import Limiter
 
 
 REFRESH_RATE: int = 2
 BURST_RATE: int = 3
-MSG_BUCKET: bytes = b'messages'
+MSG_BUCKET: str = 'messages'
 
 
 limiter: Limiter = Limiter(rate=REFRESH_RATE, capacity=BURST_RATE)
