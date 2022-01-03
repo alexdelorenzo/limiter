@@ -40,6 +40,8 @@ async def download_page(url: str) -> str:
 # Usage
 You can define limiters and use them dynamically across your project.
 
+**Note**: If you're using Python version `3.9.x` or below, check out [the documentation for version `0.2.0` of `limiter` here](https://github.com/alexdelorenzo/limiter/blob/master/README-0.2.0.md).
+
 ### Limiting blocks of code
 `limiter` can rate limit all Python callables, and limiters can be used as context managers.
 
@@ -151,7 +153,7 @@ The only things that are equivalent between the three new limiters above are the
 # Installation
 ## Requirements
  - Python 3.10+ for versions `0.3.0` and up
- - Python 3.7+ for versions below `0.3.0`
+ - [Python 3.7+ for versions below `0.3.0`](https://github.com/alexdelorenzo/limiter/blob/master/README-0.2.0.md)
 
 ## Install via PyPI
 ```bash
