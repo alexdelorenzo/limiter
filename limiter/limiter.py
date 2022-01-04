@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import AsyncContextManager, ContextManager, Awaitable
+from typing import AsyncContextManager, ContextManager, Awaitable, TypedDict
 from contextlib import (
     AbstractContextManager, AbstractAsyncContextManager,
     contextmanager, asynccontextmanager
@@ -27,7 +27,11 @@ from .base import (
 LIM_KEY: str = 'limiter'
 
 
-Attrs = dict[str, Tokens | BucketName | _Limiter]
+class Attrs(TypedDict):
+    consume: Tokens
+    bucket: BucketName
+
+    limiter: _Limiter
 
 
 class LimiterBase(ABC):
@@ -95,27 +99,27 @@ class Limiter(LimiterCtxMixin):
         pass
 
       elif callable(func_or_consume):
-        wrapper = limit_calls(self.limiter, self.consume, self.bucket)
+        wrapper = limit_calls(self, self.consume, self.bucket)
         return wrapper(func_or_consume)
 
       elif not isinstance(func_or_consume, Tokens):
-        raise ValueError(f'First argument must be a callable or {Tokens}')
+        raise ValueError(f'First argument must be callable or {Tokens}')
 
       if AttrName.rate in kwargs or AttrName.capacity in kwargs:
-        raise ValueError('Create a new limiter with the new}() method or Limiter class')
+        raise ValueError('Create a new limiter with the new() method or Limiter class')
 
       consume: Tokens = func_or_consume
-      new_attrs: Attrs = self.attrs
+      attrs: Attrs = self.attrs
 
       if consume:
-        new_attrs[AttrName.consume] = consume
+        attrs[AttrName.consume] = consume
 
       if bucket:
-        new_attrs[AttrName.bucket] = bucket
+        attrs[AttrName.bucket] = bucket
 
-      new_attrs |= kwargs
+      attrs |= kwargs
 
-      return Limiter(**new_attrs, limiter=self.limiter)
+      return Limiter(**attrs, limiter=self.limiter)
 
     @property
     def attrs(self) -> Attrs:
@@ -140,6 +144,7 @@ def limit_calls(
     """
     lim_wrapper = limiter
     bucket, limiter = _get_bucket_limiter(bucket, limiter)
+    limiter: _Limiter
 
     def wrapper(func: Decoratable[P, T]) -> Decorated[P, T]:
         if iscoroutinefunction(func):
