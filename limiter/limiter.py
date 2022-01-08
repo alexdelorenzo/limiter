@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import AsyncContextManager, ContextManager, Awaitable, TypedDict
+from typing import (
+  AsyncContextManager, ContextManager, Awaitable, TypedDict,
+  Final
+)
 from contextlib import (
-    AbstractContextManager, AbstractAsyncContextManager,
-    contextmanager, asynccontextmanager
+  AbstractContextManager, AbstractAsyncContextManager,
+  contextmanager, asynccontextmanager
 )
 from asyncio import sleep as aiosleep, iscoroutinefunction
 from dataclasses import dataclass, asdict
@@ -14,216 +17,224 @@ from time import sleep
 from abc import ABC
 
 from strenum import StrEnum  # type: ignore
-from token_bucket import Limiter as _Limiter  # type: ignore
+from token_bucket import Limiter as TokenBucket  # type: ignore
 
 from .base import (
-    WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
-    Tokens, Decoratable, Decorated, Decorator, P, T,
-    BucketName, _get_limiter, _get_bucket_limiter,
-    _get_sleep_duration
+  WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
+  Tokens, Decoratable, Decorated, Decorator, Jitter, P, T,
+  BucketName, _get_limiter, _get_bucket_limiter,
+  _get_sleep_duration, DEFAULT_JITTER,
 )
 
 
-LIM_KEY: str = 'limiter'
+LIM_KEY: Final[str] = 'limiter'
 
 
 class Attrs(TypedDict):
-    consume: Tokens
-    bucket: BucketName
+  consume: Tokens
+  bucket: BucketName
 
-    limiter: _Limiter
+  limiter: TokenBucket
+  jitter: Jitter
 
 
 class LimiterBase(ABC):
-    consume: Tokens
-    bucket: BucketName
+  consume: Tokens
+  bucket: BucketName
 
-    limiter: _Limiter
+  limiter: TokenBucket
+  jitter: Jitter
 
 
 class LimiterCtxMixin(
-    LimiterBase,
-    AbstractContextManager,
-    AbstractAsyncContextManager
+  LimiterBase,
+  AbstractContextManager,
+  AbstractAsyncContextManager
 ):
-    def __enter__(self) -> ContextManager[Limiter]:
-        with limit_rate(self.limiter, self.consume, self.bucket) as limiter:
-            return limiter
+  def __enter__(self) -> ContextManager[Limiter]:
+    with limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+      return limiter
 
-    def __exit__(self, *args):
-        pass
+  def __exit__(self, *args):
+    pass
 
-    async def __aenter__(self) -> AsyncContextManager[Limiter]:
-        async with async_limit_rate(self.limiter, self.consume, self.bucket) as limiter:
-            return limiter
+  async def __aenter__(self) -> AsyncContextManager[Limiter]:
+    async with async_limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+      return limiter
 
-    async def __aexit__(self, *args):
-        pass
+  async def __aexit__(self, *args):
+    pass
 
 
 class AttrName(StrEnum):
-    rate: str = auto()
-    capacity: str = auto()
+  rate: str = auto()
+  capacity: str = auto()
 
-    consume: str = auto()
-    bucket: str = auto()
+  consume: str = auto()
+  bucket: str = auto()
 
-    limiter: str = auto()
+  limiter: str = auto()
+  jitter: str = auto()
 
 
 @dataclass
 class Limiter(LimiterCtxMixin):
-    rate: Tokens = RATE
-    capacity: Tokens = CAPACITY
+  rate: Tokens = RATE
+  capacity: Tokens = CAPACITY
 
-    consume: Tokens | None = None
-    bucket: BucketName = DEFAULT_BUCKET
+  consume: Tokens | None = None
+  bucket: BucketName = DEFAULT_BUCKET
 
-    limiter: _Limiter | None = None
+  limiter: TokenBucket | None = None
+  jitter: Jitter = DEFAULT_JITTER
 
-    def __post_init__(self):
-      if self.limiter is None:
-        limiter = _get_limiter(self.rate, self.capacity)
-        self.limiter = limiter
+  def __post_init__(self):
+    if self.limiter is None:
+      limiter = _get_limiter(self.rate, self.capacity)
+      self.limiter = limiter
 
-      if self.consume is None:
-        self.consume = CONSUME_TOKENS
+    if self.consume is None:
+      self.consume = CONSUME_TOKENS
 
-    def __call__(
-      self,
-      func_or_consume: Decoratable[P, T] | Tokens | None = None,
-      bucket: BucketName | None = None,
-      **kwargs,
-    ) -> Decorated[P, T] | Limiter:
-      if func_or_consume is None:
-        pass
+  def __call__(
+    self,
+    func_or_consume: Decoratable[P, T] | Tokens | None = None,
+    bucket: BucketName | None = None,
+    **kwargs: Attrs,
+  ) -> Decorated[P, T] | Limiter:
+    if func_or_consume is None:
+      pass
 
-      elif callable(func_or_consume):
-        wrapper = limit_calls(self, self.consume, self.bucket)
-        return wrapper(func_or_consume)
+    elif callable(func_or_consume):
+      wrapper = limit_calls(self, self.consume, self.bucket)
+      return wrapper(func_or_consume)
 
-      elif not isinstance(func_or_consume, Tokens):
-        raise ValueError(f'First argument must be callable or {Tokens}')
+    elif not isinstance(func_or_consume, Tokens):
+      raise ValueError(f'First argument must be callable or {Tokens}')
 
-      if AttrName.rate in kwargs or AttrName.capacity in kwargs:
-        raise ValueError('Create a new limiter with the new() method or Limiter class')
+    if AttrName.rate in kwargs or AttrName.capacity in kwargs:
+      raise ValueError('Create a new limiter with the new() method or Limiter class')
 
-      consume: Tokens = func_or_consume
-      attrs: Attrs = self.attrs
+    consume: Tokens = func_or_consume
+    attrs: Attrs = self.attrs
 
-      if consume:
-        attrs[AttrName.consume] = consume
+    if consume:
+      attrs[AttrName.consume] = consume
 
-      if bucket:
-        attrs[AttrName.bucket] = bucket
+    if bucket:
+      attrs[AttrName.bucket] = bucket
 
-      attrs |= kwargs
+    attrs |= kwargs
 
-      return Limiter(**attrs, limiter=self.limiter)
+    return Limiter(**attrs, limiter=self.limiter)
 
-    @property
-    def attrs(self) -> Attrs:
-      attrs = asdict(self)
-      attrs.pop(LIM_KEY, None)
+  @property
+  def attrs(self) -> Attrs:
+    attrs = asdict(self)
+    attrs.pop(LIM_KEY, None)
 
-      return attrs
+    return attrs
 
-    def new(self, **new_attrs: Attrs):
-      updated_attrs = self.attrs | new_attrs
+  def new(self, **attrs: Attrs):
+    updated_attrs = self.attrs | attrs
 
-      return Limiter(**updated_attrs)
+    return Limiter(**updated_attrs)
 
 
 def limit_calls(
-    limiter: Limiter,
-    consume: Tokens = CONSUME_TOKENS,
-    bucket: BucketName = DEFAULT_BUCKET,
+  limiter: Limiter,
+  consume: Tokens = CONSUME_TOKENS,
+  bucket: BucketName = DEFAULT_BUCKET,
 ) -> Decorator[P, T]:
-    """
-    Rate-limiting decorator for synchronous and asynchronous callables.
-    """
-    lim_wrapper = limiter
-    bucket, limiter = _get_bucket_limiter(bucket, limiter)
-    limiter: _Limiter
+  """
+  Rate-limiting decorator for synchronous and asynchronous callables.
+  """
+  lim_wrapper = limiter
+  bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  limiter: TokenBucket
 
-    def wrapper(func: Decoratable[P, T]) -> Decorated[P, T]:
-        if iscoroutinefunction(func):
-            @wraps(func)
-            async def new_coroutine_func(*args: P.args, **kwargs: P.kwargs) -> Awaitable[T]:
-                async with async_limit_rate(limiter, consume, bucket):
-                    return await func(*args, **kwargs)
+  def wrapper(func: Decoratable[P, T]) -> Decorated[P, T]:
+    if iscoroutinefunction(func):
+      @wraps(func)
+      async def new_coroutine_func(*args: P.args, **kwargs: P.kwargs) -> Awaitable[T]:
+        async with async_limit_rate(limiter, consume, bucket):
+          return await func(*args, **kwargs)
 
-            new_coroutine_func.limiter = lim_wrapper
-            return new_coroutine_func
+      new_coroutine_func.limiter = lim_wrapper
+      return new_coroutine_func
 
-        elif callable(func):
-            @wraps(func)
-            def new_func(*args: P.args, **kwargs: P.kwargs) -> T:
-                with limit_rate(limiter, consume, bucket):
-                    return func(*args, **kwargs)
+    elif callable(func):
+      @wraps(func)
+      def new_func(*args: P.args, **kwargs: P.kwargs) -> T:
+        with limit_rate(limiter, consume, bucket):
+          return func(*args, **kwargs)
 
-            new_func.limiter = lim_wrapper
-            return new_func
+      new_func.limiter = lim_wrapper
+      return new_func
 
-        else:
-            raise ValueError("Can only decorate callables and coroutine functions.")
+    else:
+      raise ValueError("Can only decorate callables and coroutine functions.")
 
-    return wrapper
+  return wrapper
 
 
 @asynccontextmanager
 async def async_limit_rate(
-    limiter: Limiter,
-    consume: Tokens = CONSUME_TOKENS,
-    bucket: BucketName = DEFAULT_BUCKET,
+  limiter: Limiter,
+  consume: Tokens = CONSUME_TOKENS,
+  bucket: BucketName = DEFAULT_BUCKET,
+  jitter: Jitter = DEFAULT_JITTER,
 ) -> AsyncContextManager[Limiter]:
-    """
-    Rate-limiting asynchronous context manager.
-    """
-    bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  """
+  Rate-limiting asynchronous context manager.
+  """
+  bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  limiter: TokenBucket
 
-    # minimize attribute look ups in loop
-    get_tokens = limiter._storage.get_token_count
-    lim_consume = limiter.consume
-    rate = limiter._rate
+  # minimize attribute look ups in loop
+  get_tokens = limiter._storage.get_token_count
+  lim_consume = limiter.consume
+  rate = limiter._rate
 
-    while not lim_consume(bucket, consume):
-        tokens = get_tokens(bucket)
-        sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=True)
+  while not lim_consume(bucket, consume):
+    tokens = get_tokens(bucket)
+    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=jitter)
 
-        if sleep_for <= WAKE_UP:
-            break
+    if sleep_for <= WAKE_UP:
+      break
 
-        debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
-        await aiosleep(sleep_for)
+    debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+    await aiosleep(sleep_for)
 
-    yield limiter
+  yield limiter
 
 
 @contextmanager
 def limit_rate(
-    limiter: Limiter,
-    consume: Tokens = CONSUME_TOKENS,
-    bucket: BucketName = DEFAULT_BUCKET,
+  limiter: Limiter,
+  consume: Tokens = CONSUME_TOKENS,
+  bucket: BucketName = DEFAULT_BUCKET,
+  jitter: Jitter = DEFAULT_JITTER,
 ) -> ContextManager[Limiter]:
-    """
-    Thread-safe rate-limiting context manager.
-    """
-    bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  """
+  Thread-safe rate-limiting context manager.
+  """
+  bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  limiter: TokenBucket
 
-    # minimize attribute look ups in loop
-    get_tokens = limiter._storage.get_token_count
-    lim_consume = limiter.consume
-    rate = limiter._rate
+  # minimize attribute look ups in loop
+  get_tokens = limiter._storage.get_token_count
+  lim_consume = limiter.consume
+  rate = limiter._rate
 
-    while not lim_consume(bucket, consume):
-        tokens = get_tokens(bucket)
-        sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=True)
+  while not lim_consume(bucket, consume):
+    tokens = get_tokens(bucket)
+    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=jitter)
 
-        if sleep_for <= WAKE_UP:
-            break
+    if sleep_for <= WAKE_UP:
+      break
 
-        debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
-        sleep(sleep_for)
+    debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+    sleep(sleep_for)
 
-    yield limiter
+  yield limiter
