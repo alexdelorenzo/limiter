@@ -24,9 +24,12 @@ limit_downloads = Limiter(rate=2, capacity=5, consume=2)
 
 @limit_downloads
 async def download_image(url: str) -> bytes:
-  ...
+  async with (
+    ClientSession() as session,
+    session.get(url) as response,
+  ):
+    return await response.read()
 
-# or
 
 async def download_page(url: str) -> str:
   async with (
