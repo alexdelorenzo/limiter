@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import (
   AsyncContextManager, ContextManager, Awaitable, TypedDict,
-  Final
+  Final, cast
 )
 from contextlib import (
   AbstractContextManager, AbstractAsyncContextManager,
@@ -106,8 +106,9 @@ class Limiter(LimiterCtxMixin):
       pass
 
     elif callable(func_or_consume):
+      func: Decoratable = cast(Decoratable, func_or_consume)
       wrapper = limit_calls(self, self.consume, self.bucket)
-      return wrapper(func_or_consume)
+      return wrapper(func)
 
     elif not isinstance(func_or_consume, Tokens):
       raise ValueError(f'First argument must be callable or {Tokens}')
@@ -115,7 +116,7 @@ class Limiter(LimiterCtxMixin):
     if AttrName.rate in kwargs or AttrName.capacity in kwargs:
       raise ValueError('Create a new limiter with the new() method or Limiter class')
 
-    consume: Tokens = func_or_consume
+    consume: Tokens = cast(Tokens, func_or_consume)
     attrs: Attrs = self.attrs
 
     if consume:
@@ -149,11 +150,12 @@ def limit_calls(
   """
   Rate-limiting decorator for synchronous and asynchronous callables.
   """
-  lim_wrapper = limiter
-  bucket, limiter = _get_bucket_limiter(bucket, limiter)
-  limiter: TokenBucket
+  lim_wrapper: Limiter = limiter
 
-  def wrapper(func: Decoratable[P, T]) -> Decorated[P, T]:
+  bucket, limiter = _get_bucket_limiter(bucket, limiter)
+  limiter: TokenBucket = cast(TokenBucket, limiter)
+
+  def decorator(func: Decoratable[P, T]) -> Decorated[P, T]:
     if iscoroutinefunction(func):
       @wraps(func)
       async def new_coroutine_func(*args: P.args, **kwargs: P.kwargs) -> Awaitable[T]:
@@ -175,7 +177,7 @@ def limit_calls(
     else:
       raise ValueError("Can only decorate callables and coroutine functions.")
 
-  return wrapper
+  return decorator
 
 
 @asynccontextmanager
@@ -188,8 +190,10 @@ async def async_limit_rate(
   """
   Rate-limiting asynchronous context manager.
   """
+  lim_wrapper: Limiter = limiter
+
   bucket, limiter = _get_bucket_limiter(bucket, limiter)
-  limiter: TokenBucket
+  limiter: TokenBucket = cast(TokenBucket, limiter)
 
   # minimize attribute look ups in loop
   get_tokens = limiter._storage.get_token_count
@@ -206,7 +210,7 @@ async def async_limit_rate(
     debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
     await aiosleep(sleep_for)
 
-  yield limiter
+  yield lim_wrapper
 
 
 @contextmanager
@@ -219,8 +223,10 @@ def limit_rate(
   """
   Thread-safe rate-limiting context manager.
   """
+  lim_wrapper: Limiter = limiter
+
   bucket, limiter = _get_bucket_limiter(bucket, limiter)
-  limiter: TokenBucket
+  limiter: TokenBucket = cast(TokenBucket, limiter)
 
   # minimize attribute look ups in loop
   get_tokens = limiter._storage.get_token_count
@@ -237,4 +243,4 @@ def limit_rate(
     debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
     sleep(sleep_for)
 
-  yield limiter
+  yield lim_wrapper
