@@ -61,32 +61,32 @@ limit_msgs: Limiter = limiter(bucket=MSG_BUCKET)
 
 @limiter
 def download_page(url: str) -> bytes:
-    ...
+  ...
 
 
 @limiter(consume=2)
 async def download_page(url: str) -> bytes:
-    ...
+  ...
 
 
 def send_page(page: bytes):
-    with limiter(consume=1.5, bucket=MSG_BUCKET):
-        ...
+  with limiter(consume=1.5, bucket=MSG_BUCKET):
+    ...
 
 
 async def send_page(page: bytes):
-    async with limit_msgs:
-        ...
+  async with limit_msgs:
+    ...
 
 
 @limit_msgs(consume=3)
 def send_email(to: str):
-    ...
+  ...
 
 
 async def send_email(to: str):
-    async with limiter(bucket=MSG_BUCKET):
-        ...
+  async with limiter(bucket=MSG_BUCKET):
+    ...
 ```
 
 In the example above, both `limiter` and `limit_msgs` share the same limiter. The only difference is that `limit_msgs` will take tokens from the `MSG_BUCKET` bucket by default.
@@ -114,22 +114,22 @@ limit_downloads: Limiter = Limiter(REFRESH_RATE, BURST_RATE, consume=2)
 
 @limit_downloads
 def download_page(url: str) -> bytes:
-    ...
+  ...
 
 
 @limit_downloads
 async def download_page(url: str) -> bytes:
-    ...
+  ...
 
 
 def download_image(url: str) -> bytes:
-    with limit_downloads:
-        ...
+  with limit_downloads:
+    ...
 
 
 async def download_image(url: str) -> bytes:
-    async with limit_downloads:
-        ...
+  async with limit_downloads:
+    ...
 ```
 
 Let's look at the difference between reusing an existing limiter, and creating new limiters with the `new()` method:
