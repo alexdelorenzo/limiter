@@ -6,11 +6,11 @@
   - Rate limiting thread-safe [context-managers](https://www.python.org/dev/peps/pep-0343/)
   - Rate limiting [async context-managers](https://www.python.org/dev/peps/pep-0492/#asynchronous-context-managers-and-async-with)
 
-Here are a few benefits of using `limiter` and its features:
+Here are some features and benefits of using `limiter`:
  - Easily control burst and average request rates
  - It is [thread-safe, with no need for a timer thread](https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm#Comparison_with_the_token_bucket)
- - It has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
  - It adds [jitter and backoff](https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/) to help with contention
+ - It has a simple API that takes advantage of Python's features, idioms and [type hinting](https://www.python.org/dev/peps/pep-0483/)
 
 ## Example
 Here's an example of using a limiter as a decorator and context manager:
