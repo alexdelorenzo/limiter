@@ -3,8 +3,8 @@
 `limiter` makes it easy to add [rate limiting](https://en.wikipedia.org/wiki/Rate_limiting) to Python projects, using a [token bucket](https://en.wikipedia.org/wiki/Token_bucket) algorithm. `limiter` can provide Python projects and scripts with:
   - Rate limiting thread-safe [decorators](https://www.python.org/dev/peps/pep-0318/)
   - Rate limiting async decorators
-  - Rate limiting thread-safe [context-managers](https://www.python.org/dev/peps/pep-0343/)
-  - Rate limiting [async context-managers](https://www.python.org/dev/peps/pep-0492/#asynchronous-context-managers-and-async-with)
+  - Rate limiting thread-safe [context managers](https://www.python.org/dev/peps/pep-0343/)
+  - Rate limiting [async context managers](https://www.python.org/dev/peps/pep-0492/#asynchronous-context-managers-and-async-with)
 
 Here are some features and benefits of using `limiter`:
  - Easily control burst and average request rates
