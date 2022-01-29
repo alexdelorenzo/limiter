@@ -46,7 +46,7 @@ class LimiterBase(ABC):
   jitter: Jitter
 
 
-class LimiterCtxMixin(
+class LimiterContextManager(
   LimiterBase,
   AbstractContextManager,
   AbstractAsyncContextManager
@@ -78,7 +78,7 @@ class AttrName(StrEnum):
 
 
 @dataclass
-class Limiter(LimiterCtxMixin):
+class Limiter(LimiterContextManager):
   rate: Tokens = RATE
   capacity: Tokens = CAPACITY
 
@@ -90,8 +90,7 @@ class Limiter(LimiterCtxMixin):
 
   def __post_init__(self):
     if self.limiter is None:
-      limiter = _get_limiter(self.rate, self.capacity)
-      self.limiter = limiter
+      self.limiter = _get_limiter(self.rate, self.capacity)
 
     if self.consume is None:
       self.consume = CONSUME_TOKENS
@@ -100,34 +99,31 @@ class Limiter(LimiterCtxMixin):
     self,
     func_or_consume: Decoratable[P, T] | Tokens | None = None,
     bucket: BucketName | None = None,
-    **kwargs: Attrs,
+    **attrs: Attrs,
   ) -> Decorated[P, T] | Limiter:
-    if func_or_consume is None:
-      pass
-
-    elif callable(func_or_consume):
+    if callable(func_or_consume):
       func: Decoratable = cast(Decoratable, func_or_consume)
       wrapper = limit_calls(self, self.consume, self.bucket)
       return wrapper(func)
 
-    elif not isinstance(func_or_consume, Tokens):
-      raise ValueError(f'First argument must be callable or {Tokens}')
+    elif func_or_consume and not isinstance(func_or_consume, Tokens):
+      raise TypeError(f'First argument must be callable or {Tokens}')
 
-    if AttrName.rate in kwargs or AttrName.capacity in kwargs:
+    if AttrName.rate in attrs or AttrName.capacity in attrs:
       raise ValueError('Create a new limiter with the new() method or Limiter class')
 
     consume: Tokens = cast(Tokens, func_or_consume)
-    attrs: Attrs = self.attrs
+    new_attrs: Attrs = self.attrs
 
     if consume:
-      attrs[AttrName.consume] = consume
+      new_attrs[AttrName.consume] = consume
 
     if bucket:
-      attrs[AttrName.bucket] = bucket
+      new_attrs[AttrName.bucket] = bucket
 
-    attrs |= kwargs
+    new_attrs |= attrs
 
-    return Limiter(**attrs, limiter=self.limiter)
+    return Limiter(**new_attrs, limiter=self.limiter)
 
   @property
   def attrs(self) -> Attrs:
@@ -137,9 +133,9 @@ class Limiter(LimiterCtxMixin):
     return attrs
 
   def new(self, **attrs: Attrs):
-    updated_attrs = self.attrs | attrs
+    new_attrs = self.attrs | attrs
 
-    return Limiter(**updated_attrs)
+    return Limiter(**new_attrs)
 
 
 def limit_calls(
