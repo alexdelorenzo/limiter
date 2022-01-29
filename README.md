@@ -30,9 +30,9 @@ async def download_image(url: str) -> bytes:
 
 async def download_page(url: str) -> str:
   async with (
-    limit_downloads,
     ClientSession() as session,
-    session.get(url) as response,
+    limit_downloads,
+    session.get(url) as response
   ):
     return await response.text()
 ```
