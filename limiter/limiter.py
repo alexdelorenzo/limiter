@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import (
   AsyncContextManager, ContextManager, Awaitable, TypedDict,
-  Final, cast
+  cast
 )
 from contextlib import (
   AbstractContextManager, AbstractAsyncContextManager,
@@ -25,9 +25,6 @@ from .base import (
   BucketName, _get_limiter, _get_bucket_limiter,
   _get_sleep_duration, DEFAULT_JITTER,
 )
-
-
-LIM_KEY: Final[str] = 'limiter'
 
 
 class Attrs(TypedDict):
@@ -128,7 +125,7 @@ class Limiter(LimiterContextManager):
   @property
   def attrs(self) -> Attrs:
     attrs = asdict(self)
-    attrs.pop(LIM_KEY, None)
+    attrs.pop(AttrName.limiter, None)
 
     return attrs
 
