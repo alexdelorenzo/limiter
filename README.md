@@ -150,6 +150,44 @@ assert limiter_a.attrs == limiter_b.attrs == limiter_c.attrs
 
 The only things that are equivalent between the three new limiters above are the limiters' attributes, like the `rate`, `capacity`, and `consume` attributes.
 
+### Creating anonymous, or single-use, limiters
+You don't have to assign `Limiter` objects to variables. Anonymous limiters don't share a token bucket like named limiters can. They work well when you don't have a reason to share a limiter between two or more blocks of code, and when a limiter has a single or independent purpose.
+
+`limiter`, after version `v0.3.0`, ships with a `limit` type alias for `Limiter`:
+```python3
+from limiter import limit
+
+
+@limit(capacity=2, consume=2)
+async def send_message():
+  ...
+
+
+async def upload_image():
+  async with limit(capacity=3) as limiter:
+    ...
+```
+
+The above is equivalent to the below:
+```python3
+from limiter import Limiter
+
+
+@Limiter(capacity=2, consume=2)
+async def send_message():
+  ...
+
+
+async def upload_image():
+  async with Limiter(capacity=3) as limiter:
+    ...
+```
+
+Both `limit` and `Limiter` are the same object:
+```python3
+assert limit is Limiter
+```
+
 # Installation
 ## Requirements
  - Python 3.10+ for versions `0.3.0` and up
