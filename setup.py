@@ -16,6 +16,6 @@ setup(name="limiter",
       packages=['limiter'],
       zip_safe=True,
       install_requires=requirements,
-       keywords="rate-limit rate limit token bucket token-bucket token_bucket tokenbucket decorator contextmanager asynchronous threadsafe synchronous".split(' '),
+      keywords="rate-limit rate limit token bucket token-bucket token_bucket tokenbucket decorator contextmanager asynchronous threadsafe synchronous".split(' '),
       python_requires='>=3.10',
 )
