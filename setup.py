@@ -17,7 +17,5 @@ setup(name="limiter",
       zip_safe=True,
       install_requires=requirements,
        keywords="rate-limit rate limit token bucket token-bucket token_bucket tokenbucket decorator contextmanager asynchronous threadsafe synchronous".split(' '),
-     # entry_points={"console_scripts":
-     #                   ["campfs = campfs.command:cmd"]},
       python_requires='>=3.10',
 )
