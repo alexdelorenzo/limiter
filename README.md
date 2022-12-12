@@ -42,6 +42,15 @@ You can define limiters and use them dynamically across your project.
 
 **Note**: If you're using Python version `3.9.x` or below, check out [the documentation for version `0.2.0` of `limiter` here](https://github.com/alexdelorenzo/limiter/blob/master/README-0.2.0.md).
 
+### `Limiter` instances
+`Limiter` instances take `rate`, `capacity` and `consume` arguments. 
+
+ - `rate` is the token replenishment rate per second. Tokens are automatically added every second.
+
+ - `consume` is the amount of tokens consumed from the token bucket upon successfully taking tokens from the bucket.
+
+ - `capacity` is the total amount of tokens the token bucket can hold. Token replenishment stops when this capacity is reached.
+ 
 ### Limiting blocks of code
 `limiter` can rate limit all Python callables, and limiters can be used as context managers.
 
