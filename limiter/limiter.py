@@ -20,7 +20,7 @@ from strenum import StrEnum  # type: ignore
 from token_bucket import Limiter as TokenBucket  # type: ignore
 
 from .base import (
-  WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
+  MS_IN_SEC, UnitsInSecond, WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
   Tokens, Decoratable, Decorated, Decorator, Jitter, P, T,
   BucketName, _get_limiter, _get_bucket_limiter,
   _get_sleep_duration, DEFAULT_JITTER,
@@ -33,6 +33,7 @@ class Attrs(TypedDict):
 
   limiter: TokenBucket
   jitter: Jitter
+  units: UnitsInSecond
 
 
 class LimiterBase(ABC):
@@ -41,6 +42,7 @@ class LimiterBase(ABC):
 
   limiter: TokenBucket
   jitter: Jitter
+  units: UnitsInSecond
 
 
 class LimiterContextManager(
@@ -72,7 +74,7 @@ class AttrName(StrEnum):
 
   limiter: str = auto()
   jitter: str = auto()
-
+  units: str = auto()
 
 @dataclass
 class Limiter(LimiterContextManager):
@@ -84,6 +86,7 @@ class Limiter(LimiterContextManager):
 
   limiter: TokenBucket | None = None
   jitter: Jitter = DEFAULT_JITTER
+  units: UnitsInSecond = MS_IN_SEC
 
   def __post_init__(self):
     if self.limiter is None:
@@ -97,6 +100,7 @@ class Limiter(LimiterContextManager):
     func_or_consume: Decoratable[P, T] | Tokens | None = None,
     bucket: BucketName | None = None,
     jitter: Jitter | None = None,
+    units: UnitsInSecond | None = None,
     **attrs: Attrs,
   ) -> Decorated[P, T] | Limiter:
     if callable(func_or_consume):
@@ -122,6 +126,9 @@ class Limiter(LimiterContextManager):
     if jitter:
       new_attrs[AttrName.jitter] = jitter
 
+    if units:
+      new_attrs[AttrName.units] = units
+
     new_attrs |= attrs
 
     return Limiter(**new_attrs, limiter=self.limiter)
@@ -144,6 +151,7 @@ def limit_calls(
   consume: Tokens = CONSUME_TOKENS,
   bucket: BucketName = DEFAULT_BUCKET,
   jitter: Jitter = DEFAULT_JITTER,
+  units: UnitsInSecond = MS_IN_SEC,
 ) -> Decorator[P, T]:
   """
   Rate-limiting decorator for synchronous and asynchronous callables.
@@ -157,7 +165,7 @@ def limit_calls(
     if iscoroutinefunction(func):
       @wraps(func)
       async def new_coroutine_func(*args: P.args, **kwargs: P.kwargs) -> Awaitable[T]:
-        async with async_limit_rate(limiter, consume, bucket, jitter):
+        async with async_limit_rate(limiter, consume, bucket, jitter, units):
           return await func(*args, **kwargs)
 
       new_coroutine_func.limiter = lim_wrapper
@@ -166,7 +174,7 @@ def limit_calls(
     elif callable(func):
       @wraps(func)
       def new_func(*args: P.args, **kwargs: P.kwargs) -> T:
-        with limit_rate(limiter, consume, bucket, jitter):
+        with limit_rate(limiter, consume, bucket, jitter, units):
           return func(*args, **kwargs)
 
       new_func.limiter = lim_wrapper
@@ -184,6 +192,7 @@ async def async_limit_rate(
   consume: Tokens = CONSUME_TOKENS,
   bucket: BucketName = DEFAULT_BUCKET,
   jitter: Jitter = DEFAULT_JITTER,
+  units: UnitsInSecond = MS_IN_SEC,
 ) -> AsyncContextManager[Limiter]:
   """
   Rate-limiting asynchronous context manager.
@@ -200,7 +209,7 @@ async def async_limit_rate(
 
   while not lim_consume(bucket, consume):
     tokens = get_tokens(bucket)
-    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=jitter)
+    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter, units)
 
     if sleep_for <= WAKE_UP:
       break
@@ -217,6 +226,7 @@ def limit_rate(
   consume: Tokens = CONSUME_TOKENS,
   bucket: BucketName = DEFAULT_BUCKET,
   jitter: Jitter = DEFAULT_JITTER,
+  units: UnitsInSecond = MS_IN_SEC,
 ) -> ContextManager[Limiter]:
   """
   Thread-safe rate-limiting context manager.
@@ -233,7 +243,7 @@ def limit_rate(
 
   while not lim_consume(bucket, consume):
     tokens = get_tokens(bucket)
-    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter=jitter)
+    sleep_for = _get_sleep_duration(consume, tokens, rate, jitter, units)
 
     if sleep_for <= WAKE_UP:
       break
