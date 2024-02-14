@@ -300,6 +300,14 @@ Or create a new limiter with jitter turned off:
 limiter: Limiter = limiter.new(jitter=False)
 ```
 
+### Units
+
+`units` is a number representing the amount of units in one second. The default value is `1000` for 1,000 milliseconds in one second.
+
+Similar to `jitter`, `units` can be supplied at all the same call sites and constructors that `jitter` is accepted.
+
+If you want to use a different unit than milliseconds, supply a different value for `units`.
+
 ## Installation
 
 ### Requirements
