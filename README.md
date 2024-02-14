@@ -228,7 +228,7 @@ assert limit is Limiter
 
 A `Limiter`'s `jitter` argument adds jitter to help with contention.
 
-The value is in milliseconds, and can be any of these:
+The value is in `units`, which is milliseconds by default, and can be any of these:
 
 - `False`, to add no jitter. This is the default.
 - `True`, to add a random amount of jitter.
