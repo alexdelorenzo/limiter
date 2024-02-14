@@ -49,14 +49,14 @@ class LimiterContextManager(
   AbstractAsyncContextManager
 ):
   def __enter__(self) -> ContextManager[Limiter]:
-    with limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+    with limit_rate(self.limiter, self.consume, self.bucket, self.jitter) as limiter:
       return limiter
 
   def __exit__(self, *args):
     pass
 
   async def __aenter__(self) -> AsyncContextManager[Limiter]:
-    async with async_limit_rate(self.limiter, self.consume, self.bucket) as limiter:
+    async with async_limit_rate(self.limiter, self.consume, self.bucket, self.jitter) as limiter:
       return limiter
 
   async def __aexit__(self, *args):
@@ -96,6 +96,7 @@ class Limiter(LimiterContextManager):
     self,
     func_or_consume: Decoratable[P, T] | Tokens | None = None,
     bucket: BucketName | None = None,
+    jitter: Jitter | None = None,
     **attrs: Attrs,
   ) -> Decorated[P, T] | Limiter:
     if callable(func_or_consume):
@@ -118,6 +119,9 @@ class Limiter(LimiterContextManager):
     if bucket:
       new_attrs[AttrName.bucket] = bucket
 
+    if jitter:
+      new_attrs[AttrName.jitter] = jitter
+
     new_attrs |= attrs
 
     return Limiter(**new_attrs, limiter=self.limiter)
@@ -139,6 +143,7 @@ def limit_calls(
   limiter: Limiter,
   consume: Tokens = CONSUME_TOKENS,
   bucket: BucketName = DEFAULT_BUCKET,
+  jitter: Jitter = DEFAULT_JITTER,
 ) -> Decorator[P, T]:
   """
   Rate-limiting decorator for synchronous and asynchronous callables.
@@ -152,7 +157,7 @@ def limit_calls(
     if iscoroutinefunction(func):
       @wraps(func)
       async def new_coroutine_func(*args: P.args, **kwargs: P.kwargs) -> Awaitable[T]:
-        async with async_limit_rate(limiter, consume, bucket):
+        async with async_limit_rate(limiter, consume, bucket, jitter):
           return await func(*args, **kwargs)
 
       new_coroutine_func.limiter = lim_wrapper
@@ -161,7 +166,7 @@ def limit_calls(
     elif callable(func):
       @wraps(func)
       def new_func(*args: P.args, **kwargs: P.kwargs) -> T:
-        with limit_rate(limiter, consume, bucket):
+        with limit_rate(limiter, consume, bucket, jitter):
           return func(*args, **kwargs)
 
       new_func.limiter = lim_wrapper
