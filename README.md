@@ -246,7 +246,7 @@ limiter = Limiter(rate=2, capacity=5, consume=2, jitter=range(0, 100))
 limiter = Limiter(rate=2, capacity=5, consume=2, jitter=range(0, 100, 1))
 ```
 
-All of the above are equivalent to each other.
+All of the above are equivalent to each other in function.
 
 You can also supply values for `jitter` when using decorators or context-managers:
 
@@ -267,7 +267,7 @@ async def download_page(url: str) -> bytes:
 You can use the above to override default values of `jitter` in a `Limiter` instance.
 
 
-To add a small amount of random jitter, supply `True`  as the value:
+To add a small amount of random jitter, supply `True` as the value:
 ```python3
 limiter = Limiter(rate=2, capacity=5, consume=2, jitter=True)
 
@@ -294,7 +294,7 @@ async def download_page(url: str) -> bytes:
         ...
 ```
 
-Or create yourself a new limiter with jitter turned off:
+Or create a new limiter with jitter turned off:
 
 ```python3
 limiter: Limiter = limiter.new(jitter=False)
