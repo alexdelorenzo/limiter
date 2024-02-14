@@ -42,7 +42,7 @@ def _get_bucket(name: BucketName) -> Bucket:
     case str():
       return name.encode()
 
-  raise TypeError('Name must be a string or bytes.')
+  raise TypeError('Name must be bytes or a bytes-encodable string.')
 
 
 def _get_limiter(rate: Tokens = RATE, capacity: Tokens = CAPACITY) -> TokenBucket:
