@@ -46,7 +46,7 @@ async def download_page(url: str) -> str:
     return await response.text()
 ```
 
-# Usage
+## Usage
 
 You can define limiters and use them dynamically across your project.
 
@@ -224,19 +224,95 @@ Both `limit` and `Limiter` are the same object:
 assert limit is Limiter
 ```
 
-# Installation
+### Jitter
 
-## Requirements
+A `Limiter`'s `jitter` argument adds jitter to help with contention.
+
+The value is in milliseconds, and can be any of these:
+
+- `False`, to add no jitter. This is the default.
+- `True`, to add a random amount of jitter.
+- A number, to add a fixed amount of jitter.
+- A `range` object, to add a random amount of jitter within the range.
+- A `tuple` of two numbers, `start` and `stop`, to add a random amount of jitter between the two numbers.
+- A `tuple` of three numbers: `start`, `stop` and `step`, to add jitter like you would with `range`.
+
+For example, if you want to use a random amount of jitter between `0` and `100` milliseconds:
+
+```python3
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=(0, 100))
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=(0, 100, 1))
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=range(0, 100))
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=range(0, 100, 1))
+```
+
+All of the above are equivalent to each other.
+
+You can also supply values for `jitter` when using decorators or context-managers:
+
+```python3
+limiter = Limiter(rate=2, capacity=5, consume=2)
+
+
+@limiter(jitter=range(0, 100))
+def download_page(url: str) -> bytes:
+  ...
+
+
+async def download_page(url: str) -> bytes:
+    async with limiter(jitter=(0, 100)):
+        ...
+```
+
+You can use the above to override default values of `jitter` in a `Limiter` instance.
+
+
+To add a small amount of random jitter, supply `True`  as the value:
+```python3
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=True)
+
+# or
+
+@limiter(jitter=True)
+def download_page(url: str) -> bytes:
+  ...
+```
+
+To turn off jitter in a `Limiter` configured with jitter, you can supply `False` as the value:
+
+```python3
+limiter = Limiter(rate=2, capacity=5, consume=2, jitter=range(10))
+
+
+@limiter(jitter=False)
+def download_page(url: str) -> bytes:
+  ...
+
+
+async def download_page(url: str) -> bytes:
+    async with limiter(jitter=False):
+        ...
+```
+
+Or create yourself a new limiter with jitter turned off:
+
+```python3
+limiter: Limiter = limiter.new(jitter=False)
+```
+
+## Installation
+
+### Requirements
 
 - Python 3.10+ for versions `0.3.0` and up
 - [Python 3.7+ for versions below `0.3.0`](https://github.com/alexdelorenzo/limiter/blob/master/README-0.2.0.md)
 
-## Install via PyPI
+### Install via PyPI
 
 ```bash
 $ python3 -m pip install limiter
 ```
 
-# License
+## License
 
 See [`LICENSE`](/LICENSE). If you'd like to use this project with a different license, please get in touch.
