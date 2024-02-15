@@ -80,6 +80,7 @@ class AttrName(StrEnum):
   jitter: str = auto()
   units: str = auto()
 
+
 @dataclass
 class Limiter(LimiterContextManager):
   rate: Tokens = RATE
