@@ -7,7 +7,7 @@ readme = Path('README.md').read_text()
 
 setup(
   name="limiter",
-  version="0.4.1",
+  version="0.5.0",
   description="⏲️ Easy rate limiting for Python. Rate limiting async and thread-safe decorators and context managers "
               "that use a token bucket algorithm.",
   long_description=readme,
