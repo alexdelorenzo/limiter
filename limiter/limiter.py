@@ -51,14 +51,14 @@ class LimiterContextManager(
   AbstractAsyncContextManager
 ):
   def __enter__(self) -> ContextManager[Limiter]:
-    with limit_rate(self.limiter, self.consume, self.bucket, self.jitter) as limiter:
+    with limit_rate(self.limiter, self.consume, self.bucket, self.jitter, self.units) as limiter:
       return limiter
 
   def __exit__(self, *args):
     pass
 
   async def __aenter__(self) -> AsyncContextManager[Limiter]:
-    async with async_limit_rate(self.limiter, self.consume, self.bucket, self.jitter) as limiter:
+    async with async_limit_rate(self.limiter, self.consume, self.bucket, self.jitter, self.units) as limiter:
       return limiter
 
   async def __aexit__(self, *args):
