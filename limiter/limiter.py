@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import (
   AsyncContextManager, ContextManager, Awaitable, TypedDict,
   cast
@@ -11,10 +12,10 @@ from contextlib import (
 from asyncio import sleep as aiosleep, iscoroutinefunction
 from dataclasses import dataclass, asdict
 from functools import wraps
-from logging import debug
 from enum import auto
 from time import sleep
 from abc import ABC
+import logging
 
 from strenum import StrEnum  # type: ignore
 from token_bucket import Limiter as TokenBucket  # type: ignore
@@ -25,6 +26,9 @@ from .base import (
   BucketName, _get_limiter, _get_bucket_limiter,
   _get_sleep_duration, DEFAULT_JITTER,
 )
+
+
+log = logging.getLogger(__name__)
 
 
 class Attrs(TypedDict):
@@ -214,7 +218,7 @@ async def async_limit_rate(
     if sleep_for <= WAKE_UP:
       break
 
-    debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+    log.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
     await aiosleep(sleep_for)
 
   yield lim_wrapper
@@ -248,7 +252,7 @@ def limit_rate(
     if sleep_for <= WAKE_UP:
       break
 
-    debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
+    log.debug(f'Rate limit reached. Sleeping for {sleep_for}s.')
     sleep(sleep_for)
 
   yield lim_wrapper
