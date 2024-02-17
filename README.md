@@ -229,7 +229,7 @@ A `Limiter`'s `jitter` argument adds jitter to help with contention.
 The value is in `units`, which is milliseconds by default, and can be any of these:
 
 - `False`, to add no jitter. This is the default.
-- `True`, to add a random amount of jitter.
+- `True`, to add a random amount of jitter between `0` and `50` milliseconds.
 - A number, to add a fixed amount of jitter.
 - A `range` object, to add a random amount of jitter within the range.
 - A `tuple` of two numbers, `start` and `stop`, to add a random amount of jitter between the two numbers.

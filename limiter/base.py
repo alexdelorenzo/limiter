@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Final, TypeVar, ParamSpec, Callable, Awaitable
+from typing import Final, TypeVar, ParamSpec, Callable, Awaitable, cast
 from random import random, randrange
 
 from token_bucket import Limiter as TokenBucket, MemoryStorage
@@ -32,6 +32,7 @@ MS_IN_SEC: Final[UnitsInSecond] = 1000
 
 DEFAULT_BUCKET: Final[Bucket] = b"default"
 DEFAULT_JITTER: Final[Jitter] = False
+DEFAULT_RANGE: Final[range] = range(50)
 
 
 def _get_bucket(name: BucketName) -> Bucket:
@@ -76,11 +77,10 @@ def _get_sleep_duration(
     case int() | float():
       return duration - jitter
 
-    case bool() if jitter:
-      amount: Duration = random() / units
-      return duration - amount
+    case range() | bool() if jitter:
+      if jitter is True:
+        jitter: range = DEFAULT_RANGE
 
-    case range():
       amount: Duration = randrange(jitter.start, jitter.stop, jitter.step) / units
       return duration - amount
 
