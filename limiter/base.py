@@ -84,12 +84,12 @@ def _get_sleep_duration(
       amount: Duration = randrange(jitter.start, jitter.stop, jitter.step) / units
       return duration - amount
 
-    case start, end:
-      amount: Duration = randrange(start, end) / units
+    case start, stop:
+      amount: Duration = randrange(start, stop) / units
       return duration - amount
 
-    case start, end, step:
-      amount: Duration = randrange(start, end, step) / units
+    case start, stop, step:
+      amount: Duration = randrange(start, stop, step) / units
       return duration - amount
 
   return duration
