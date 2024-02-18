@@ -1,6 +1,7 @@
 from __future__ import annotations
-from typing import Final, TypeVar, ParamSpec, Callable, Awaitable, cast
-from random import random, randrange
+
+from random import randrange
+from typing import Awaitable, Callable, Final, ParamSpec, TypeVar
 
 from token_bucket import Limiter as TokenBucket, MemoryStorage
 
