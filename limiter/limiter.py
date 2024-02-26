@@ -1,30 +1,21 @@
 from __future__ import annotations
 
 import logging
-from typing import (
-  AsyncContextManager, ContextManager, Awaitable, TypedDict,
-  cast
-)
-from contextlib import (
-  AbstractContextManager, AbstractAsyncContextManager,
-  contextmanager, asynccontextmanager
-)
-from asyncio import sleep as aiosleep, iscoroutinefunction
-from dataclasses import dataclass, asdict
-from functools import wraps
-from enum import auto
-from time import sleep
 from abc import ABC
-import logging
+from asyncio import iscoroutinefunction, sleep as aiosleep
+from contextlib import AbstractAsyncContextManager, AbstractContextManager, asynccontextmanager, contextmanager
+from dataclasses import asdict, dataclass
+from enum import auto
+from functools import wraps
+from time import sleep
+from typing import AsyncContextManager, Awaitable, ContextManager, TypedDict, cast
 
 from strenum import StrEnum  # type: ignore
 from token_bucket import Limiter as TokenBucket  # type: ignore
 
 from .base import (
-  MS_IN_SEC, UnitsInSecond, WAKE_UP, RATE, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET,
-  Tokens, Decoratable, Decorated, Decorator, Jitter, P, T,
-  BucketName, _get_limiter, _get_bucket_limiter,
-  _get_sleep_duration, DEFAULT_JITTER,
+  BucketName, CAPACITY, CONSUME_TOKENS, DEFAULT_BUCKET, DEFAULT_JITTER, Decoratable, Decorated, Decorator, Jitter,
+  MS_IN_SEC, P, RATE, T, Tokens, UnitsInSecond, WAKE_UP, _get_bucket_limiter, _get_limiter, _get_sleep_duration,
 )
 
 
@@ -111,6 +102,7 @@ class Limiter(LimiterContextManager):
     if callable(func_or_consume):
       func: Decoratable = cast(Decoratable, func_or_consume)
       wrapper = limit_calls(self, self.consume, self.bucket)
+
       return wrapper(func)
 
     elif func_or_consume and not isinstance(func_or_consume, Tokens):
@@ -120,6 +112,18 @@ class Limiter(LimiterContextManager):
       raise ValueError('Create a new limiter with the new() method or Limiter class')
 
     consume: Tokens = cast(Tokens, func_or_consume)
+    new_attrs = self._get_new_attrs(attrs, bucket, consume, jitter, units)
+
+    return Limiter(**new_attrs, limiter=self.limiter)
+
+  def _get_new_attrs(
+    self,
+    attrs: Attrs,
+    bucket: BucketName,
+    consume: Tokens,
+    jitter: Jitter,
+    units: UnitsInSecond
+  ) -> Attrs:
     new_attrs: Attrs = self.attrs
 
     if consume:
@@ -136,7 +140,7 @@ class Limiter(LimiterContextManager):
 
     new_attrs |= attrs
 
-    return Limiter(**new_attrs, limiter=self.limiter)
+    return new_attrs
 
   @property
   def attrs(self) -> Attrs:
